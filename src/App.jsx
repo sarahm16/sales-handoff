@@ -5,6 +5,7 @@ import { Route, Routes, useLocation } from "react-router-dom";
 // Route imports
 import Auth from "./pages/Auth/Auth.jsx";
 import Handoffs from "./pages/Handoffs/Handoffs.jsx";
+import OpenHandoff from "./pages/OpenHandoff/Openhandoff.jsx";
 
 // Component imports
 import Layout from "./components/PageLayout.jsx";
@@ -49,6 +50,15 @@ function App() {
           element={
             <ProtectedRoute>
               <Handoffs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          exact
+          path="/handoffs/:id"
+          element={
+            <ProtectedRoute>
+              <OpenHandoff />
             </ProtectedRoute>
           }
         />

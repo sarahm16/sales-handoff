@@ -1,35 +1,60 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { useEffect, useState } from "react";
+import reactLogo from "./assets/react.svg";
+import viteLogo from "/vite.svg";
+import "./App.css";
+import { useMsal } from "@azure/msal-react";
+import { Route, Routes, useLocation } from "react-router-dom";
 
-function App() {
-  const [count, setCount] = useState(0)
+// Route imports
+import Auth from "./pages/Auth/Auth.jsx";
+import Handoffs from "./pages/Handoffs/Handoffs.jsx";
 
-  return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+function ProtectedRoute({ children }) {
+  const { accounts, instance } = useMsal();
+  const location = useLocation();
+
+  const isAuthenticated = accounts && accounts?.length > 0;
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      sessionStorage.setItem("postLoginRedirect", location.pathname);
+      instance.loginRedirect({ scopes: ["User.Read"] });
+    }
+  }, [isAuthenticated, instance, location.pathname]);
+
+  if (!isAuthenticated) {
+    return <div>Redirecting to sign in...</div>; // or a loading spinner
+  }
+
+  return children;
 }
 
-export default App
+function App() {
+  return (
+    <>
+      <Routes>
+        <Route exact path="/auth" element={<Auth />} />
+        <Route
+          exact
+          path="/"
+          element={
+            <ProtectedRoute>
+              <Handoffs />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          exact
+          path="/handoffs"
+          element={
+            <ProtectedRoute>
+              <Handoffs />
+            </ProtectedRoute>
+          }
+        />
+      </Routes>
+    </>
+  );
+}
+
+export default App;

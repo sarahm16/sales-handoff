@@ -12,7 +12,9 @@ const msalConfig = {
     authority: `https://login.microsoftonline.com/${
       import.meta.env.VITE_APP_AZURE_TENANT_ID
     }`,
-    redirectUri: window.location.origin,
+    redirectUri: "http://localhost:5173/auth",
+    /*     navigateToLoginRequestUrl: true,
+     */
   },
   cache: {
     cacheLocation: "localStorage",
@@ -32,25 +34,27 @@ function Root() {
         await pca.initialize();
         console.log("✅ MSAL initialized");
 
+        // Handle redirect response FIRST - this must happen before routing
         const response = await pca.handleRedirectPromise();
-        console.log("🟢 handleRedirectPromise() returned:", response);
+        console.log("🔄 Redirect response:", response);
 
-        if (response && response.account) {
-          console.log("👤 Setting active account from redirect result");
+        if (response) {
+          console.log("✅ User authenticated via redirect");
           pca.setActiveAccount(response.account);
+        }
+
+        // Set active account from cache if available
+        const accounts = pca.getAllAccounts();
+        console.log("📦 Cached accounts:", accounts);
+        if (accounts.length === 1) {
+          console.log("👤 Setting active account from cache");
+          pca.setActiveAccount(accounts[0]);
+        } else if (accounts.length > 1) {
+          console.warn(
+            "⚠️ Multiple accounts found; you may need account selection logic."
+          );
         } else {
-          const accounts = pca.getAllAccounts();
-          console.log("📦 Cached accounts:", accounts);
-          if (accounts.length === 1) {
-            console.log("👤 Setting active account from cache");
-            pca.setActiveAccount(accounts[0]);
-          } else if (accounts.length > 1) {
-            console.warn(
-              "⚠️ Multiple accounts found; you may need account selection logic."
-            );
-          } else {
-            console.log("❌ No accounts found — not signed in.");
-          }
+          console.log("ℹ️ No cached accounts found.");
         }
 
         setIsReady(true);

@@ -2,7 +2,7 @@
 import { azureClient } from "./azureClient";
 
 // Generic save function
-export const saveItemToAzure = async (item, containerId) => {
+export const saveItemToAzure = async (containerId, item) => {
   try {
     const saveResponse = await azureClient.post(
       `/save?databaseId=procurement&containerId=${containerId}`,
@@ -16,7 +16,7 @@ export const saveItemToAzure = async (item, containerId) => {
 };
 
 // Generic update function
-export const updateItemInAzure = async (updates, containerId, itemId) => {
+export const updateItemInAzure = async (containerId, itemId, updates) => {
   try {
     const updateResponse = await azureClient.post(
       `/update?databaseId=procurement&containerId=${containerId}&id=${itemId}`,

@@ -9,6 +9,7 @@ import OpenHandoff from "./pages/OpenHandoff/Openhandoff.jsx";
 
 // Component imports
 import Layout from "./components/PageLayout.jsx";
+import HandoffForm from "./pages/HandoffForm/HandoffForm.jsx";
 
 function ProtectedRoute({ children }) {
   const { accounts, instance } = useMsal();
@@ -59,6 +60,16 @@ function App() {
           element={
             <ProtectedRoute>
               <OpenHandoff />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          exact
+          path="/form"
+          element={
+            <ProtectedRoute>
+              <HandoffForm />
             </ProtectedRoute>
           }
         />

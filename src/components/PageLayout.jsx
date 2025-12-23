@@ -26,6 +26,7 @@ import PeopleIcon from "@mui/icons-material/People";
 import MenuIcon from "@mui/icons-material/Menu";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import SettingsIcon from "@mui/icons-material/Settings";
+import Add from "@mui/icons-material/Add";
 
 function Layout({ children }) {
   const { user, email } = useAuth();
@@ -119,16 +120,14 @@ function Layout({ children }) {
           >
             <Button
               startIcon={<WorkIcon />}
-              onClick={() => handleNavigation("/workorders")}
+              onClick={() => handleNavigation("/handoffs")}
               sx={{
                 textTransform: "none",
                 fontWeight: 600,
-                color: isActive("/workorders")
-                  ? "primary.main"
-                  : "text.primary",
-                bgcolor: isActive("/workorders") ? "primary.50" : "transparent",
+                color: isActive("/handoffs") ? "primary.main" : "text.primary",
+                bgcolor: isActive("/handoffs") ? "primary.50" : "transparent",
                 "&:hover": {
-                  bgcolor: isActive("/workorders")
+                  bgcolor: isActive("/handoffs")
                     ? "primary.100"
                     : "action.hover",
                 },
@@ -137,6 +136,24 @@ function Layout({ children }) {
               }}
             >
               Hand Offs
+            </Button>
+
+            <Button
+              startIcon={<Add />}
+              onClick={() => handleNavigation("/form")}
+              sx={{
+                textTransform: "none",
+                fontWeight: 600,
+                color: isActive("/form") ? "primary.main" : "text.primary",
+                bgcolor: isActive("/form") ? "primary.50" : "transparent",
+                "&:hover": {
+                  bgcolor: isActive("/form") ? "primary.100" : "action.hover",
+                },
+                px: 2,
+                borderRadius: 2,
+              }}
+            >
+              Create Handoff
             </Button>
           </Box>
 

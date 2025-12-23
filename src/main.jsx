@@ -12,7 +12,7 @@ const msalConfig = {
     authority: `https://login.microsoftonline.com/${
       import.meta.env.VITE_APP_AZURE_TENANT_ID
     }`,
-    redirectUri: "http://localhost:5173/auth",
+    redirectUri: "http://localhost:5175/auth",
     /*     navigateToLoginRequestUrl: true,
      */
   },

@@ -32,6 +32,8 @@ import {
   CheckCircle,
   Image as ImageIcon,
   Delete as DeleteIcon,
+  ContactPhone,
+  CalendarMonth,
 } from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 
@@ -43,6 +45,7 @@ import { useAuth } from "../../auth/useAuth";
 
 // API
 import { saveItemToAzure } from "../../api/azureApi";
+import { saveImagesToBlobStorage } from "../../api/blobStorageApi";
 
 const serviceLineOptions = serviceLines.map((sl) => ({
   ...sl,
@@ -52,15 +55,27 @@ const serviceLineOptions = serviceLines.map((sl) => ({
   pricing: [],
 }));
 
+const renewalOptions = ["Auto", "Manual"];
+
 const initialFormValues = {
   client: "",
-  contract: "",
+  contractUrl: "",
   serviceLine: serviceLineOptions[0],
   status: "Pending",
   handoffId: "",
   paymentTerms: "",
   invoicingDirections: "",
   software: softwares[0],
+  numberOfSites: 0,
+  demo: true,
+  contact: {
+    name: "",
+    email: "",
+    phone: "",
+  },
+  renewal: "Auto",
+  startDate: "",
+  endDate: "",
 };
 
 const REQUIRED_COLUMNS = ["Store", "Address", "City", "State", "Zipcode"];
@@ -71,6 +86,12 @@ const REQUIRED_FIELDS = [
   "paymentTerms",
   "invoicingDirections",
   "software",
+  "contact.name",
+  "contact.email",
+  "contact.phone",
+  "renewal",
+  "startDate",
+  "endDate",
 ];
 
 function HandoffForm() {
@@ -159,12 +180,19 @@ function HandoffForm() {
     setLoading(true);
 
     try {
-      // Save contract to blob storage
-      // TODO: Implement contract upload to Azure Blob Storage
+      const contractUrl = await saveImagesToBlobStorage([contract]);
 
       // Save handoff to handoffs container and get handoff ID
       const handoffResponse = await saveItemToAzure("handoffs", {
         ...formValues,
+        contractUrl: contractUrl[0],
+        numberOfSites: sitesToUpload.length,
+        documents: [
+          {
+            name: contract.name,
+            url: contractUrl[0],
+          },
+        ],
         createdBy: user.name,
         createdByEmail: user.email,
         createdAt: new Date().toISOString(),
@@ -208,7 +236,17 @@ function HandoffForm() {
     !loading &&
     contract &&
     sitesToUpload.length > 0 &&
-    REQUIRED_FIELDS.every((field) => formValues[field]);
+    formValues.client &&
+    formValues.serviceLine &&
+    formValues.paymentTerms &&
+    formValues.invoicingDirections &&
+    formValues.software &&
+    formValues.contact.name &&
+    formValues.contact.email &&
+    formValues.contact.phone &&
+    formValues.renewal &&
+    formValues.startDate &&
+    formValues.endDate;
 
   // DataGrid columns
   const columns = [
@@ -297,7 +335,6 @@ function HandoffForm() {
     <Box
       sx={{
         minHeight: "100vh",
-        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
         py: 6,
         px: 2,
       }}
@@ -420,7 +457,7 @@ function HandoffForm() {
                         },
                       }}
                     >
-                      {contractFileName || "Upload Contract *"}
+                      {contractFileName || "Upload Signed Contract *"}
                     </Button>
                   </label>
                 </Grid>
@@ -542,6 +579,156 @@ function HandoffForm() {
               </Grid>
             </Box>
 
+            {/* Contact Information */}
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                <ContactPhone
+                  sx={{ color: "primary.main", mr: 1.5, fontSize: 28 }}
+                />
+                <Typography variant="h6" fontWeight={600}>
+                  Contact Information
+                </Typography>
+              </Box>
+
+              <Grid container spacing={3}>
+                <Grid item size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Contact Name"
+                    value={formValues.contact.name}
+                    onChange={(e) =>
+                      setFormValues({
+                        ...formValues,
+                        contact: {
+                          ...formValues.contact,
+                          name: e.target.value,
+                        },
+                      })
+                    }
+                    required
+                    variant="outlined"
+                  />
+                </Grid>
+
+                <Grid item size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Contact Email"
+                    type="email"
+                    value={formValues.contact.email}
+                    onChange={(e) =>
+                      setFormValues({
+                        ...formValues,
+                        contact: {
+                          ...formValues.contact,
+                          email: e.target.value,
+                        },
+                      })
+                    }
+                    required
+                    variant="outlined"
+                  />
+                </Grid>
+
+                <Grid item size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Contact Phone"
+                    type="tel"
+                    value={formValues.contact.phone}
+                    onChange={(e) =>
+                      setFormValues({
+                        ...formValues,
+                        contact: {
+                          ...formValues.contact,
+                          phone: e.target.value,
+                        },
+                      })
+                    }
+                    required
+                    variant="outlined"
+                    placeholder="(555) 555-5555"
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+
+            {/* Contract Details */}
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                <CalendarMonth
+                  sx={{ color: "primary.main", mr: 1.5, fontSize: 28 }}
+                />
+                <Typography variant="h6" fontWeight={600}>
+                  Contract Details
+                </Typography>
+              </Box>
+
+              <Grid container spacing={3}>
+                <Grid item size={{ xs: 12, md: 4 }}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Renewal Type</InputLabel>
+                    <Select
+                      value={formValues.renewal}
+                      label="Renewal Type"
+                      onChange={(e) =>
+                        setFormValues({
+                          ...formValues,
+                          renewal: e.target.value,
+                        })
+                      }
+                    >
+                      {renewalOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {option}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Contract Start Date"
+                    type="date"
+                    value={formValues.startDate}
+                    onChange={(e) =>
+                      setFormValues({
+                        ...formValues,
+                        startDate: e.target.value,
+                      })
+                    }
+                    required
+                    variant="outlined"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                </Grid>
+
+                <Grid item size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Contract End Date"
+                    type="date"
+                    value={formValues.endDate}
+                    onChange={(e) =>
+                      setFormValues({
+                        ...formValues,
+                        endDate: e.target.value,
+                      })
+                    }
+                    required
+                    variant="outlined"
+                    InputLabelProps={{
+                      shrink: true,
+                    }}
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+
             {/* Payment & Invoicing */}
             <Box sx={{ mb: 4 }}>
               <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
@@ -569,14 +756,13 @@ function HandoffForm() {
                     placeholder="e.g., Net 30"
                     variant="outlined"
                   />
-                  <br />{" "}
                 </Grid>
 
                 <Grid item size={12}>
                   <TextField
                     fullWidth
                     label="Invoicing Directions"
-                    value={formValues.invoicingDirctions}
+                    value={formValues.invoicingDirections}
                     onChange={(e) =>
                       setFormValues({
                         ...formValues,

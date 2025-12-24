@@ -79,7 +79,7 @@ const serviceLineOptions = serviceLines.map((sl) => ({
   pricing: [],
 }));
 
-const renewalOptions = ["Auto", "Manual"];
+const renewalOptions = ["Auto-Renewing", "Fixed Term"];
 
 const initialFormValues = {
   client: "",
@@ -97,7 +97,9 @@ const initialFormValues = {
     email: "",
     phone: "",
   },
-  renewal: "Auto",
+  renewal: "Auto-Renewing",
+  duration: "",
+  annualEscalation: "",
   startDate: "",
   endDate: "",
   notes: [],
@@ -117,7 +119,6 @@ const REQUIRED_FIELDS = [
   "contact.phone",
   "renewal",
   "startDate",
-  "endDate",
 ];
 
 function HandoffForm() {
@@ -293,7 +294,7 @@ function HandoffForm() {
     formValues.contact.phone &&
     formValues.renewal &&
     formValues.startDate &&
-    formValues.endDate;
+    (formValues.renewal === "Fixed Term" ? formValues.duration : true);
 
   // DataGrid columns
   const columns = [
@@ -1071,6 +1072,41 @@ function HandoffForm() {
                   </FormControl>
                 </Grid>
 
+                {formValues.renewal === "Fixed Term" && (
+                  <Grid item size={{ xs: 12, md: 4 }}>
+                    <TextField
+                      fullWidth
+                      label="Contract Duration"
+                      value={formValues.duration}
+                      onChange={(e) =>
+                        setFormValues({
+                          ...formValues,
+                          duration: e.target.value,
+                        })
+                      }
+                      required
+                      placeholder="e.g., 2 years, 36 months"
+                      variant="outlined"
+                    />
+                  </Grid>
+                )}
+
+                <Grid item size={{ xs: 12, md: 4 }}>
+                  <TextField
+                    fullWidth
+                    label="Annual Escalation"
+                    value={formValues.annualEscalation}
+                    onChange={(e) =>
+                      setFormValues({
+                        ...formValues,
+                        annualEscalation: e.target.value,
+                      })
+                    }
+                    placeholder="e.g., 3%, $500"
+                    variant="outlined"
+                  />
+                </Grid>
+
                 <Grid item size={{ xs: 12, md: 4 }}>
                   <TextField
                     fullWidth
@@ -1103,11 +1139,11 @@ function HandoffForm() {
                         endDate: e.target.value,
                       })
                     }
-                    required
                     variant="outlined"
                     InputLabelProps={{
                       shrink: true,
                     }}
+                    helperText="Optional"
                   />
                 </Grid>
               </Grid>

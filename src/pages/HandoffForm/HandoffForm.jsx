@@ -26,6 +26,7 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  Autocomplete,
 } from "@mui/material";
 import {
   CloudUpload,
@@ -656,25 +657,17 @@ function HandoffForm() {
                 </Grid>
 
                 <Grid item size={{ xs: 12, md: 6 }}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Software</InputLabel>
-                    <Select
-                      value={formValues.software}
-                      label="Software"
-                      onChange={(e) =>
-                        setFormValues({
-                          ...formValues,
-                          software: e.target.value,
-                        })
-                      }
-                    >
-                      {softwares.map((software) => (
-                        <MenuItem key={software} value={software}>
-                          {software}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Autocomplete
+                    renderInput={(params) => (
+                      <TextField {...params} label="Software Portal" />
+                    )}
+                    label="Software Portal"
+                    freeSolo
+                    options={softwares}
+                    onChange={(e, value) =>
+                      setFormValues({ ...formValues, software: value })
+                    }
+                  />
                 </Grid>
               </Grid>
             </Box>

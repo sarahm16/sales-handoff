@@ -16,7 +16,7 @@ export const saveImagesToBlobStorage = async (images) => {
           blobContentType: image.type || "application/octet-stream",
         },
       });
-      return blockBlobClient.url;
+      return blockBlobClient.url?.split("?sv=")[0];
     })
   );
   return imageUrls;

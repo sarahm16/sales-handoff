@@ -22,6 +22,10 @@ import {
   Container,
   IconButton,
   Tooltip,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
 } from "@mui/material";
 import {
   CloudUpload,
@@ -34,6 +38,9 @@ import {
   Delete as DeleteIcon,
   ContactPhone,
   CalendarMonth,
+  Download,
+  CheckCircleOutline,
+  Info,
 } from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 
@@ -46,6 +53,7 @@ import { useAuth } from "../../auth/useAuth";
 // API
 import { saveItemToAzure } from "../../api/azureApi";
 import { saveImagesToBlobStorage } from "../../api/blobStorageApi";
+import { getCoordsForAnArray } from "../../api/mapsAPI";
 
 const serviceLineOptions = serviceLines.map((sl) => ({
   ...sl,
@@ -79,6 +87,7 @@ const initialFormValues = {
 };
 
 const REQUIRED_COLUMNS = ["Store", "Address", "City", "State", "Zipcode"];
+const OPTIONAL_COLUMNS = ["Site Map"];
 const REQUIRED_FIELDS = [
   "client",
   "contract",
@@ -111,6 +120,39 @@ function HandoffForm() {
     setContractFileName(file?.name || "");
   };
 
+  const handleDownloadTemplate = () => {
+    // Create template data
+    const templateData = [
+      {
+        Store: "Store Name",
+        Address: "123 Main St",
+        City: "Seattle",
+        State: "WA",
+        Zipcode: "98101",
+        "Site Map": "https://example.com/sitemap.jpg (optional)",
+      },
+    ];
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(templateData);
+
+    // Set column widths
+    ws["!cols"] = [
+      { wch: 15 }, // Store
+      { wch: 20 }, // Address
+      { wch: 15 }, // City
+      { wch: 8 }, // State
+      { wch: 10 }, // Zipcode
+      { wch: 40 }, // Site Map
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Sites");
+
+    // Download file
+    XLSX.writeFile(wb, "sites_template.xlsx");
+  };
+
   const handleExcelUpload = async (event) => {
     const file = event.target.files[0];
     if (!file) return;
@@ -133,12 +175,11 @@ function HandoffForm() {
         setSitesToUpload([]);
       } else {
         setError("");
-        // Add unique id and siteMap field to each row
+        // Add unique id and normalize Site Map column
         const sitesWithIds = jsonData.map((site, index) => ({
           ...site,
-          id: index + 1,
-          siteMap: null,
-          siteMapName: "",
+          rowId: index + 1,
+          siteMapUrl: site["Site Map"] || "",
         }));
         setSitesToUpload(sitesWithIds);
         setExcelFileName(file.name);
@@ -146,34 +187,6 @@ function HandoffForm() {
     };
 
     reader.readAsArrayBuffer(file);
-  };
-
-  const handleSiteMapUpload = (siteId, event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      setError("Please upload a valid image file");
-      return;
-    }
-
-    // Update the site with the uploaded file
-    setSitesToUpload((prevSites) =>
-      prevSites.map((site) =>
-        site.id === siteId
-          ? { ...site, siteMap: file, siteMapName: file.name }
-          : site
-      )
-    );
-  };
-
-  const handleSiteMapRemove = (siteId) => {
-    setSitesToUpload((prevSites) =>
-      prevSites.map((site) =>
-        site.id === siteId ? { ...site, siteMap: null, siteMapName: "" } : site
-      )
-    );
   };
 
   const handleSubmit = async () => {
@@ -200,20 +213,15 @@ function HandoffForm() {
 
       const handoffId = handoffResponse.id;
 
-      // Save each site with its site map (if available)
-      for (const site of sitesToUpload) {
-        // If site has a site map, upload it to blob storage first
-        if (site.siteMap) {
-          const siteMapUrl = await saveImagesToBlobStorage([site.siteMap]);
-          site.siteMapUrl = siteMapUrl[0];
-        }
+      // Get Geo Coordinates for sites
+      const sitesWithCoordinates = await getCoordsForAnArray(sitesToUpload);
 
-        // Save site to sites container with handoff ID
+      // Save each site with handoff ID
+      for (const site of sitesWithCoordinates) {
         await saveItemToAzure("sites", {
           ...site,
           handoffId,
-          siteMap: null, // Remove file object, store URL instead
-          siteMapUrl: site.siteMap ? site.siteMapUrl : null,
+          siteMapUrl: site.siteMapUrl || null,
         });
       }
 
@@ -251,7 +259,7 @@ function HandoffForm() {
   // DataGrid columns
   const columns = [
     {
-      field: "id",
+      field: "rowId",
       headerName: "ID",
       width: 70,
       headerClassName: "datagrid-header",
@@ -287,44 +295,29 @@ function HandoffForm() {
       headerClassName: "datagrid-header",
     },
     {
-      field: "siteMap",
-      headerName: "Site Map",
-      width: 250,
+      field: "siteMapUrl",
+      headerName: "Site Map URL",
+      width: 300,
       headerClassName: "datagrid-header",
-      sortable: false,
       renderCell: (params) => (
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-          {params.row.siteMapName ? (
-            <>
+          {params.value ? (
+            <Tooltip title={params.value}>
               <Chip
                 icon={<ImageIcon />}
-                label={params.row.siteMapName}
+                label="Site Map Provided"
                 size="small"
                 color="success"
-                onDelete={() => handleSiteMapRemove(params.row.id)}
+                sx={{ maxWidth: 280 }}
               />
-            </>
+            </Tooltip>
           ) : (
-            <>
-              <input
-                accept="image/*"
-                style={{ display: "none" }}
-                id={`site-map-upload-${params.row.id}`}
-                type="file"
-                onChange={(e) => handleSiteMapUpload(params.row.id, e)}
-              />
-              <label htmlFor={`site-map-upload-${params.row.id}`}>
-                <Button
-                  variant="outlined"
-                  component="span"
-                  size="small"
-                  startIcon={<CloudUpload />}
-                  sx={{ textTransform: "none" }}
-                >
-                  Upload
-                </Button>
-              </label>
-            </>
+            <Chip
+              label="No Site Map"
+              size="small"
+              variant="outlined"
+              sx={{ maxWidth: 280 }}
+            />
           )}
         </Box>
       ),
@@ -383,6 +376,108 @@ function HandoffForm() {
                   Document Uploads
                 </Typography>
               </Box>
+
+              {/* Excel Upload Instructions */}
+              <Paper
+                elevation={0}
+                sx={{
+                  bgcolor: "info.50",
+                  border: "1px solid",
+                  borderColor: "info.200",
+                  p: 2.5,
+                  borderRadius: 2,
+                  mb: 3,
+                }}
+              >
+                <Box
+                  sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}
+                >
+                  <Info sx={{ color: "info.main", mt: 0.5 }} />
+                  <Box sx={{ flex: 1 }}>
+                    <Typography
+                      variant="subtitle2"
+                      fontWeight={600}
+                      gutterBottom
+                    >
+                      Excel File Requirements
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      sx={{ mb: 1.5 }}
+                    >
+                      Your Excel file must contain the following columns:
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 3, flexWrap: "wrap" }}>
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          fontWeight={600}
+                          color="text.secondary"
+                          display="block"
+                        >
+                          Required Columns:
+                        </Typography>
+                        <List dense sx={{ py: 0 }}>
+                          {REQUIRED_COLUMNS.map((col) => (
+                            <ListItem key={col} sx={{ py: 0, px: 0 }}>
+                              <ListItemIcon sx={{ minWidth: 28 }}>
+                                <CheckCircleOutline
+                                  sx={{ fontSize: 16, color: "success.main" }}
+                                />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={col}
+                                primaryTypographyProps={{
+                                  variant: "body2",
+                                  fontWeight: 500,
+                                }}
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                      </Box>
+                      <Box>
+                        <Typography
+                          variant="caption"
+                          fontWeight={600}
+                          color="text.secondary"
+                          display="block"
+                        >
+                          Optional Columns:
+                        </Typography>
+                        <List dense sx={{ py: 0 }}>
+                          {OPTIONAL_COLUMNS.map((col) => (
+                            <ListItem key={col} sx={{ py: 0, px: 0 }}>
+                              <ListItemIcon sx={{ minWidth: 28 }}>
+                                <Info
+                                  sx={{ fontSize: 16, color: "info.main" }}
+                                />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={col}
+                                primaryTypographyProps={{
+                                  variant: "body2",
+                                  fontWeight: 500,
+                                }}
+                              />
+                            </ListItem>
+                          ))}
+                        </List>
+                      </Box>
+                    </Box>
+                    <Button
+                      variant="text"
+                      size="small"
+                      startIcon={<Download />}
+                      onClick={handleDownloadTemplate}
+                      sx={{ mt: 1, textTransform: "none" }}
+                    >
+                      Download Template
+                    </Button>
+                  </Box>
+                </Box>
+              </Paper>
 
               <Grid container spacing={3}>
                 {/* Sites Excel Upload */}
@@ -486,10 +581,15 @@ function HandoffForm() {
 
                 <Box sx={{ height: 500, width: "100%" }}>
                   <DataGrid
+                    getRowId={(row) => row.rowId}
                     rows={sitesToUpload}
                     columns={columns}
-                    pageSize={10}
-                    rowsPerPageOptions={[10, 25, 50, 100]}
+                    initialState={{
+                      pagination: {
+                        paginationModel: { pageSize: 10 },
+                      },
+                    }}
+                    pageSizeOptions={[10, 25, 50, 100]}
                     disableSelectionOnClick
                     sx={{
                       bgcolor: "white",
@@ -520,7 +620,7 @@ function HandoffForm() {
               </Box>
 
               <Grid container spacing={3}>
-                <Grid item size={12}>
+                <Grid item size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Client Name"
@@ -741,7 +841,7 @@ function HandoffForm() {
               </Box>
 
               <Grid container spacing={3}>
-                <Grid item size={12}>
+                <Grid item size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Payment Terms"
@@ -758,7 +858,7 @@ function HandoffForm() {
                   />
                 </Grid>
 
-                <Grid item size={12}>
+                <Grid item size={{ xs: 12 }}>
                   <TextField
                     fullWidth
                     label="Invoicing Directions"

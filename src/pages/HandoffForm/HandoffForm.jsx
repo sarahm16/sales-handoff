@@ -1,5 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import * as XLSX from "xlsx";
+import { v4 as uuidv4 } from "uuid";
 
 // MUI Components
 import {
@@ -27,6 +28,13 @@ import {
   ListItemIcon,
   ListItemText,
   Autocomplete,
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  Divider,
+  Stack,
 } from "@mui/material";
 import {
   CloudUpload,
@@ -42,11 +50,18 @@ import {
   Download,
   CheckCircleOutline,
   Info,
+  PriceCheck,
+  Settings,
 } from "@mui/icons-material";
 import { DataGrid } from "@mui/x-data-grid";
 
 // Constants
-import { serviceLines, softwares } from "../../constants";
+import {
+  serviceLines,
+  serviceLineServices,
+  softwares,
+  units,
+} from "../../constants";
 
 // Auth
 import { useAuth } from "../../auth/useAuth";
@@ -85,6 +100,7 @@ const initialFormValues = {
   renewal: "Auto",
   startDate: "",
   endDate: "",
+  notes: [],
 };
 
 const REQUIRED_COLUMNS = ["Store", "Address", "City", "State", "Zipcode"];
@@ -114,6 +130,12 @@ function HandoffForm() {
   const [excelFileName, setExcelFileName] = useState("");
   const [contractFileName, setContractFileName] = useState("");
   const [success, setSuccess] = useState(false);
+  const [pricingColumns, setPricingColumns] = useState([]);
+
+  const availableServices = useMemo(
+    () => serviceLineServices[formValues.serviceLine?.name] || [],
+    [formValues.serviceLine]
+  );
 
   const handleContractUpload = async (event) => {
     const file = event.target.files[0];
@@ -184,6 +206,22 @@ function HandoffForm() {
         }));
         setSitesToUpload(sitesWithIds);
         setExcelFileName(file.name);
+
+        const pricingColumnNames = Object.keys(jsonData[0])?.filter(
+          (key) => !REQUIRED_COLUMNS.includes(key) && key !== "Site Map"
+        );
+        setPricingColumns(
+          pricingColumnNames.map((col) => ({
+            id: uuidv4(),
+            column: col,
+            Name: "",
+            Price: 0,
+            Service: "",
+            AddlInfo: "",
+            Unit: "Service",
+            Volume: "0",
+          }))
+        );
       }
     };
 
@@ -359,6 +397,71 @@ function HandoffForm() {
           </Box>
 
           <CardContent sx={{ p: 5 }}>
+            {/* Client Information - Moved to top */}
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                <Business
+                  sx={{ color: "primary.main", mr: 1.5, fontSize: 28 }}
+                />
+                <Typography variant="h6" fontWeight={600}>
+                  Client Information
+                </Typography>
+              </Box>
+
+              <Grid container spacing={3}>
+                <Grid item size={{ xs: 12 }}>
+                  <TextField
+                    fullWidth
+                    label="Client Name"
+                    value={formValues.client}
+                    onChange={(e) =>
+                      setFormValues({ ...formValues, client: e.target.value })
+                    }
+                    required
+                    variant="outlined"
+                  />
+                </Grid>
+
+                <Grid item size={{ xs: 12, md: 6 }}>
+                  <FormControl fullWidth required>
+                    <InputLabel>Service Line</InputLabel>
+                    <Select
+                      value={formValues.serviceLine}
+                      label="Service Line"
+                      onChange={(e) =>
+                        setFormValues({
+                          ...formValues,
+                          serviceLine: e.target.value,
+                        })
+                      }
+                    >
+                      {serviceLineOptions.map((line) => (
+                        <MenuItem key={line.id} value={line}>
+                          {line.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                </Grid>
+
+                <Grid item size={{ xs: 12, md: 6 }}>
+                  <Autocomplete
+                    renderInput={(params) => (
+                      <TextField {...params} label="Software Portal" />
+                    )}
+                    label="Software Portal"
+                    freeSolo
+                    options={softwares}
+                    onChange={(e, value) =>
+                      setFormValues({ ...formValues, software: value })
+                    }
+                  />
+                </Grid>
+              </Grid>
+            </Box>
+
+            <Divider sx={{ my: 4 }} />
+
             {/* File Upload Section */}
             <Paper
               elevation={0}
@@ -609,68 +712,256 @@ function HandoffForm() {
               </Paper>
             )}
 
-            {/* Client Information */}
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
-                <Business
-                  sx={{ color: "primary.main", mr: 1.5, fontSize: 28 }}
-                />
-                <Typography variant="h6" fontWeight={600}>
-                  Client Information
-                </Typography>
-              </Box>
+            {/* Pricing Configuration - Compact DataGrid Design */}
+            {pricingColumns.length > 0 &&
+              availableServices.length > 0 &&
+              sitesToUpload.length > 0 && (
+                <Paper
+                  elevation={0}
+                  sx={{
+                    bgcolor: "grey.50",
+                    p: 3,
+                    borderRadius: 2,
+                    mb: 4,
+                    border: "2px solid",
+                    borderColor: "primary.100",
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
+                    <PriceCheck
+                      sx={{ color: "primary.main", mr: 1.5, fontSize: 28 }}
+                    />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="h6" fontWeight={600}>
+                        Service & Pricing Configuration
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        Map your Excel columns to services and configure pricing
+                        details
+                      </Typography>
+                    </Box>
+                    <Chip
+                      label={`${pricingColumns.length} columns`}
+                      color="primary"
+                      size="small"
+                    />
+                  </Box>
 
-              <Grid container spacing={3}>
-                <Grid item size={{ xs: 12 }}>
-                  <TextField
-                    fullWidth
-                    label="Client Name"
-                    value={formValues.client}
-                    onChange={(e) =>
-                      setFormValues({ ...formValues, client: e.target.value })
-                    }
-                    required
-                    variant="outlined"
-                  />
-                </Grid>
+                  <Box
+                    sx={{
+                      height: Math.min(600, pricingColumns.length * 52 + 110),
+                      width: "100%",
+                    }}
+                  >
+                    <DataGrid
+                      getRowId={(row) => row.id}
+                      rows={pricingColumns}
+                      columns={[
+                        {
+                          field: "column",
+                          headerName: "Excel Column",
+                          width: 180,
+                          headerClassName: "pricing-header",
+                          renderCell: (params) => (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                              }}
+                            >
+                              <Chip
+                                label={
+                                  params.api.getRowIndexRelativeToVisibleRows(
+                                    params.id
+                                  ) + 1
+                                }
+                                size="small"
+                                sx={{
+                                  bgcolor: "primary.50",
+                                  color: "primary.main",
+                                  fontWeight: 600,
+                                  minWidth: 28,
+                                  height: 24,
+                                }}
+                              />
+                              <Typography variant="body2" fontWeight={600}>
+                                {params.value}
+                              </Typography>
+                            </Box>
+                          ),
+                        },
+                        {
+                          field: "Name",
+                          headerName: "Service Name",
+                          width: 250,
+                          editable: false,
+                          headerClassName: "pricing-header",
+                          renderCell: (params) => (
+                            <Select
+                              value={params.value}
+                              onChange={(e) => {
+                                const updatedColumns = pricingColumns.map(
+                                  (col) =>
+                                    col.id === params.id
+                                      ? { ...col, Name: e.target.value }
+                                      : col
+                                );
+                                setPricingColumns(updatedColumns);
+                              }}
+                              size="small"
+                              fullWidth
+                              sx={{
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  border: "none",
+                                },
+                                "& .MuiSelect-select": { py: 0.5 },
+                              }}
+                            >
+                              {availableServices.map((service) => (
+                                <MenuItem key={service} value={service}>
+                                  {service}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          ),
+                        },
+                        {
+                          field: "Volume",
+                          headerName: "Volume",
+                          width: 100,
+                          editable: false,
+                          headerClassName: "pricing-header",
+                          renderCell: (params) => (
+                            <TextField
+                              value={params.value}
+                              onChange={(e) => {
+                                const updatedColumns = pricingColumns.map(
+                                  (col) =>
+                                    col.id === params.id
+                                      ? { ...col, Volume: e.target.value }
+                                      : col
+                                );
+                                setPricingColumns(updatedColumns);
+                              }}
+                              size="small"
+                              fullWidth
+                              placeholder="0"
+                              sx={{
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  border: "none",
+                                },
+                                "& .MuiInputBase-input": {
+                                  py: 0.5,
+                                  textAlign: "center",
+                                },
+                              }}
+                            />
+                          ),
+                        },
+                        {
+                          field: "Unit",
+                          headerName: "Unit",
+                          width: 140,
+                          editable: false,
+                          headerClassName: "pricing-header",
+                          renderCell: (params) => (
+                            <Select
+                              value={params.value}
+                              onChange={(e) => {
+                                const updatedColumns = pricingColumns.map(
+                                  (col) =>
+                                    col.id === params.id
+                                      ? { ...col, Unit: e.target.value }
+                                      : col
+                                );
+                                setPricingColumns(updatedColumns);
+                              }}
+                              size="small"
+                              fullWidth
+                              sx={{
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  border: "none",
+                                },
+                                "& .MuiSelect-select": { py: 0.5 },
+                              }}
+                            >
+                              {units.map((unit) => (
+                                <MenuItem key={unit} value={unit}>
+                                  {unit}
+                                </MenuItem>
+                              ))}
+                            </Select>
+                          ),
+                        },
+                        {
+                          field: "AddlInfo",
+                          headerName: "Additional Info",
+                          flex: 1,
+                          minWidth: 200,
+                          editable: false,
+                          headerClassName: "pricing-header",
+                          renderCell: (params) => (
+                            <TextField
+                              value={params.value}
+                              onChange={(e) => {
+                                const updatedColumns = pricingColumns.map(
+                                  (col) =>
+                                    col.id === params.id
+                                      ? { ...col, AddlInfo: e.target.value }
+                                      : col
+                                );
+                                setPricingColumns(updatedColumns);
+                              }}
+                              size="small"
+                              fullWidth
+                              placeholder="Optional notes..."
+                              sx={{
+                                "& .MuiOutlinedInput-notchedOutline": {
+                                  border: "none",
+                                },
+                                "& .MuiInputBase-input": { py: 0.5 },
+                              }}
+                            />
+                          ),
+                        },
+                      ]}
+                      disableRowSelectionOnClick
+                      hideFooter={pricingColumns.length <= 10}
+                      initialState={{
+                        pagination: {
+                          paginationModel: { pageSize: 10 },
+                        },
+                      }}
+                      pageSizeOptions={[10, 25, 50]}
+                      sx={{
+                        bgcolor: "white",
+                        border: "none",
+                        "& .pricing-header": {
+                          bgcolor: "primary.main",
+                          color: "white",
+                          fontWeight: 600,
+                        },
+                        "& .MuiDataGrid-cell": {
+                          borderBottom: "1px solid #f0f0f0",
+                          py: 0.5,
+                        },
+                        "& .MuiDataGrid-cell:focus": {
+                          outline: "none",
+                        },
+                        "& .MuiDataGrid-cell:focus-within": {
+                          outline: "none",
+                        },
+                        "& .MuiDataGrid-row:hover": {
+                          bgcolor: "primary.50",
+                        },
+                      }}
+                    />
+                  </Box>
+                </Paper>
+              )}
 
-                <Grid item size={{ xs: 12, md: 6 }}>
-                  <FormControl fullWidth required>
-                    <InputLabel>Service Line</InputLabel>
-                    <Select
-                      value={formValues.serviceLine}
-                      label="Service Line"
-                      onChange={(e) =>
-                        setFormValues({
-                          ...formValues,
-                          serviceLine: e.target.value,
-                        })
-                      }
-                    >
-                      {serviceLineOptions.map((line) => (
-                        <MenuItem key={line.id} value={line}>
-                          {line.name}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                </Grid>
-
-                <Grid item size={{ xs: 12, md: 6 }}>
-                  <Autocomplete
-                    renderInput={(params) => (
-                      <TextField {...params} label="Software Portal" />
-                    )}
-                    label="Software Portal"
-                    freeSolo
-                    options={softwares}
-                    onChange={(e, value) =>
-                      setFormValues({ ...formValues, software: value })
-                    }
-                  />
-                </Grid>
-              </Grid>
-            </Box>
+            <Divider sx={{ my: 4 }} />
 
             {/* Contact Information */}
             <Box sx={{ mb: 4 }}>

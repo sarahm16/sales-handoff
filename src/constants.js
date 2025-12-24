@@ -99,3 +99,18 @@ export const serviceLineServices = {
   ],
   "Landscape Construction": [],
 };
+
+export const units = [
+  "Hour",
+  "Load",
+  "Man Hour",
+  "Square Footage",
+  "Bag",
+  "Gallon",
+  "Ton",
+  "Application",
+  "Service",
+  "Event",
+  "Month",
+  "Season",
+];

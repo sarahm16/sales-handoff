@@ -1,4 +1,12 @@
-import { memo, useContext, useCallback } from "react";
+import {
+  memo,
+  useContext,
+  useCallback,
+  useMemo,
+  useState,
+  useEffect,
+  useRef,
+} from "react";
 import { HandoffContext } from "../HandoffForm";
 
 // MUI Imports
@@ -6,9 +14,6 @@ import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import Chip from "@mui/material/Chip";
-import Select from "@mui/material/Select";
-import MenuItem from "@mui/material/MenuItem";
-import TextField from "@mui/material/TextField";
 
 // MUI Data Grid
 import { DataGrid } from "@mui/x-data-grid";
@@ -19,173 +24,123 @@ import PriceCheck from "@mui/icons-material/PriceCheck";
 // Constants
 import { units } from "../../../constants";
 
-// Memoized cell renderers
-const ExcelColumnCell = memo(({ value, rowIndex }) => (
-  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-    <Chip
-      label={rowIndex + 1}
-      size="small"
-      sx={{
-        bgcolor: "primary.50",
-        color: "primary.main",
-        fontWeight: 600,
-        minWidth: 28,
-        height: 24,
-      }}
-    />
-    <Typography variant="body2" fontWeight={600}>
-      {value}
-    </Typography>
-  </Box>
-));
-
-const ServiceNameCell = memo(({ value, id, onChange, services }) => (
-  <Select
-    value={value}
-    onChange={(e) => onChange(id, "Name", e.target.value)}
-    size="small"
-    fullWidth
-    sx={{
-      "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-      "& .MuiSelect-select": { py: 0.5 },
-    }}
-  >
-    {services.map((service) => (
-      <MenuItem key={service} value={service}>
-        {service}
-      </MenuItem>
-    ))}
-  </Select>
-));
-
-const VolumeCell = memo(({ value, id, onChange }) => (
-  <TextField
-    value={value}
-    onChange={(e) => onChange(id, "Volume", e.target.value)}
-    size="small"
-    fullWidth
-    placeholder="0"
-    sx={{
-      "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-      "& .MuiInputBase-input": { py: 0.5, textAlign: "center" },
-    }}
-  />
-));
-
-const UnitCell = memo(({ value, id, onChange }) => (
-  <Select
-    value={value}
-    onChange={(e) => onChange(id, "Unit", e.target.value)}
-    size="small"
-    fullWidth
-    sx={{
-      "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-      "& .MuiSelect-select": { py: 0.5 },
-    }}
-  >
-    {units.map((unit) => (
-      <MenuItem key={unit} value={unit}>
-        {unit}
-      </MenuItem>
-    ))}
-  </Select>
-));
-
-const AddlInfoCell = memo(({ value, id, onChange }) => (
-  <TextField
-    value={value}
-    onChange={(e) => onChange(id, "AddlInfo", e.target.value)}
-    size="small"
-    fullWidth
-    placeholder="Optional notes..."
-    sx={{
-      "& .MuiOutlinedInput-notchedOutline": { border: "none" },
-      "& .MuiInputBase-input": { py: 0.5 },
-    }}
-  />
-));
-
-export const PricingConfiguration = memo(function PricingConfiguration() {
+const PricingConfiguration = memo(function PricingConfiguration() {
   const { pricingColumns, setPricingColumns, availableServices } =
     useContext(HandoffContext);
 
-  // Single optimized handler for all field changes
-  const handleCellChange = useCallback(
-    (id, field, value) => {
-      setPricingColumns((prev) =>
-        prev.map((col) => (col.id === id ? { ...col, [field]: value } : col))
-      );
-    },
-    [setPricingColumns]
+  // Local state for fast editing - changes happen here instantly
+  const [localRows, setLocalRows] = useState(pricingColumns);
+
+  // Use ref to always have latest localRows value (avoids stale closure)
+  const localRowsRef = useRef(localRows);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    localRowsRef.current = localRows;
+  }, [localRows]);
+
+  // Sync local state when parent state changes (e.g., new Excel upload)
+  useEffect(() => {
+    setLocalRows(pricingColumns);
+  }, [pricingColumns]);
+
+  // Update parent state when user stops editing a cell
+  const handleCellEditStop = useCallback(() => {
+    console.log("Cell edit stopped, syncing to parent:", localRowsRef.current);
+    // Use ref to get the latest value (not stale closure)
+    setPricingColumns(localRowsRef.current);
+  }, [setPricingColumns]);
+
+  // Process row updates in local state only (fast!)
+  const processRowUpdate = useCallback((newRow, oldRow) => {
+    console.log("Processing row update:", { newRow, oldRow });
+    // Update local state immediately for instant feedback
+    setLocalRows((prev) =>
+      prev.map((row) => (row.id === newRow.id ? newRow : row))
+    );
+    return newRow; // Return the new row to confirm the update
+  }, []);
+
+  // Handle any errors during row update
+  const handleProcessRowUpdateError = useCallback((error) => {
+    console.error("Error updating row:", error);
+  }, []);
+
+  // Memoize columns configuration
+  const columns = useMemo(
+    () => [
+      {
+        field: "column",
+        headerName: "Excel Column",
+        width: 180,
+        editable: false,
+        headerClassName: "pricing-header",
+        renderCell: (params) => {
+          const rowIndex = params.api.getRowIndexRelativeToVisibleRows(
+            params.id
+          );
+          return (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Chip
+                label={rowIndex + 1}
+                size="small"
+                sx={{
+                  bgcolor: "primary.50",
+                  color: "primary.main",
+                  fontWeight: 600,
+                  minWidth: 28,
+                  height: 24,
+                }}
+              />
+              <Typography variant="body2" fontWeight={600}>
+                {params.value}
+              </Typography>
+            </Box>
+          );
+        },
+      },
+      {
+        field: "Name",
+        headerName: "Service Name",
+        width: 250,
+        editable: true,
+        type: "singleSelect",
+        valueOptions: availableServices,
+        headerClassName: "pricing-header",
+      },
+      {
+        field: "Volume",
+        headerName: "Volume",
+        width: 100,
+        editable: true,
+        headerClassName: "pricing-header",
+      },
+      {
+        field: "Unit",
+        headerName: "Unit",
+        width: 140,
+        editable: true,
+        type: "singleSelect",
+        valueOptions: units,
+        headerClassName: "pricing-header",
+      },
+      {
+        field: "AddlInfo",
+        headerName: "Additional Info",
+        flex: 1,
+        minWidth: 200,
+        editable: true,
+        headerClassName: "pricing-header",
+      },
+    ],
+    [availableServices]
   );
 
-  // Memoized columns configuration
-  const columns = [
-    {
-      field: "column",
-      headerName: "Excel Column",
-      width: 180,
-      headerClassName: "pricing-header",
-      renderCell: (params) => {
-        const rowIndex = params.api.getRowIndexRelativeToVisibleRows(params.id);
-        return <ExcelColumnCell value={params.value} rowIndex={rowIndex} />;
-      },
-    },
-    {
-      field: "Name",
-      headerName: "Service Name",
-      width: 250,
-      headerClassName: "pricing-header",
-      renderCell: (params) => (
-        <ServiceNameCell
-          value={params.value}
-          id={params.id}
-          onChange={handleCellChange}
-          services={availableServices}
-        />
-      ),
-    },
-    {
-      field: "Volume",
-      headerName: "Volume",
-      width: 100,
-      headerClassName: "pricing-header",
-      renderCell: (params) => (
-        <VolumeCell
-          value={params.value}
-          id={params.id}
-          onChange={handleCellChange}
-        />
-      ),
-    },
-    {
-      field: "Unit",
-      headerName: "Unit",
-      width: 140,
-      headerClassName: "pricing-header",
-      renderCell: (params) => (
-        <UnitCell
-          value={params.value}
-          id={params.id}
-          onChange={handleCellChange}
-        />
-      ),
-    },
-    {
-      field: "AddlInfo",
-      headerName: "Additional Info",
-      flex: 1,
-      minWidth: 200,
-      headerClassName: "pricing-header",
-      renderCell: (params) => (
-        <AddlInfoCell
-          value={params.value}
-          id={params.id}
-          onChange={handleCellChange}
-        />
-      ),
-    },
-  ];
+  // Memoize grid height calculation
+  const gridHeight = useMemo(
+    () => Math.min(600, localRows.length * 52 + 110),
+    [localRows.length]
+  );
 
   return (
     <Paper
@@ -206,34 +161,36 @@ export const PricingConfiguration = memo(function PricingConfiguration() {
             Service & Pricing Configuration
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Map your Excel columns to services and configure pricing details
+            Double-click any cell to edit - changes save when you press Enter or
+            click away
           </Typography>
         </Box>
         <Chip
-          label={`${pricingColumns.length} columns`}
+          label={`${localRows.length} columns`}
           color="primary"
           size="small"
         />
       </Box>
 
-      <Box
-        sx={{
-          height: Math.min(600, pricingColumns.length * 52 + 110),
-          width: "100%",
-        }}
-      >
+      <Box sx={{ height: gridHeight, width: "100%" }}>
         <DataGrid
           getRowId={(row) => row.id}
-          rows={pricingColumns}
+          rows={localRows}
           columns={columns}
           disableRowSelectionOnClick
-          hideFooter={pricingColumns.length <= 10}
+          hideFooter={localRows.length <= 10}
           initialState={{
             pagination: {
               paginationModel: { pageSize: 10 },
             },
           }}
           pageSizeOptions={[10, 25, 50]}
+          // Key props for cell editing with local state
+          processRowUpdate={processRowUpdate}
+          onProcessRowUpdateError={handleProcessRowUpdateError}
+          onCellEditStop={handleCellEditStop}
+          // Performance optimizations
+          disableVirtualization={false}
           sx={{
             bgcolor: "white",
             border: "none",
@@ -246,11 +203,17 @@ export const PricingConfiguration = memo(function PricingConfiguration() {
               borderBottom: "1px solid #f0f0f0",
               py: 0.5,
             },
-            "& .MuiDataGrid-cell:focus": {
-              outline: "none",
+            "& .MuiDataGrid-cell--editable": {
+              cursor: "cell",
+              bgcolor: "grey.50",
+              "&:hover": {
+                bgcolor: "action.hover",
+              },
             },
-            "& .MuiDataGrid-cell:focus-within": {
-              outline: "none",
+            "& .MuiDataGrid-cell--editing": {
+              bgcolor: "primary.50",
+              boxShadow: "inset 0 0 0 2px",
+              boxShadowColor: "primary.main",
             },
             "& .MuiDataGrid-row:hover": {
               bgcolor: "primary.50",
@@ -261,3 +224,7 @@ export const PricingConfiguration = memo(function PricingConfiguration() {
     </Paper>
   );
 });
+
+PricingConfiguration.displayName = "PricingConfiguration";
+
+export default PricingConfiguration;

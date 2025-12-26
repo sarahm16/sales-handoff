@@ -32,7 +32,7 @@ import FormHeader from "./Components/FormHeader";
 import ClientInformation from "./Components/ClientInformation";
 import FileUpload from "./Components/FileUpload";
 import SitesDataGrid from "./Components/SitesDataGrid";
-import { PricingConfiguration } from "./Components/PricingConfiguration";
+import PricingConfiguration from "./Components/PricingConfiguration";
 import ContactInfo from "./Components/ContactInfo";
 import ContractDetails from "./Components/ContractDetails";
 import PaymentAndInvoicing from "./Components/PaymentAndInvoicing";

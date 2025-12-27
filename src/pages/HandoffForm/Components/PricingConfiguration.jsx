@@ -52,14 +52,25 @@ const PricingConfiguration = memo(function PricingConfiguration() {
   }, [setPricingColumns]);
 
   // Process row updates in local state only (fast!)
-  const processRowUpdate = useCallback((newRow, oldRow) => {
-    console.log("Processing row update:", { newRow, oldRow });
-    // Update local state immediately for instant feedback
-    setLocalRows((prev) =>
-      prev.map((row) => (row.id === newRow.id ? newRow : row))
-    );
-    return newRow; // Return the new row to confirm the update
-  }, []);
+  const processRowUpdate = useCallback(
+    (newRow, oldRow) => {
+      console.log("Processing row update:", { newRow, oldRow });
+
+      // Update local state immediately for instant feedback
+      const updatedRows = localRowsRef.current.map((row) =>
+        row.id === newRow.id ? newRow : row
+      );
+
+      setLocalRows(updatedRows);
+
+      // ✅ SYNC TO PARENT IMMEDIATELY
+      // This ensures changes are saved even when jumping between rows
+      setPricingColumns(updatedRows);
+
+      return newRow;
+    },
+    [setPricingColumns]
+  );
 
   // Handle any errors during row update
   const handleProcessRowUpdateError = useCallback((error) => {

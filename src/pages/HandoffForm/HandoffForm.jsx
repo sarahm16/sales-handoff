@@ -89,6 +89,7 @@ const initialFormValues = {
 
 function HandoffForm() {
   const user = useAuth()?.user;
+  const email = user?.email || "unknown_user";
   const [sitesToUpload, setSitesToUpload] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formValues, setFormValues] = useState(initialFormValues);
@@ -158,8 +159,8 @@ function HandoffForm() {
             url: contractUrl[0],
           },
         ],
-        createdBy: user.name,
-        createdByEmail: user.email,
+        createdBy: user,
+        createdByEmail: email,
         createdAt: new Date().toISOString(),
       });
 
@@ -170,11 +171,33 @@ function HandoffForm() {
 
       // Save each site with handoff ID
       for (const site of sitesWithCoordinates) {
-        await saveItemToAzure("sites", {
-          ...site,
-          handoffId,
-          siteMapUrl: site.siteMapUrl || null,
-        });
+        const serviceLine = {
+          ...formValues.serviceLine,
+          pricing: pricingColumns.map((col) => ({
+            ...col,
+            Price: site[col.column] || 0,
+          })),
+        };
+
+        const siteToSave = {
+          address: site.address,
+          city: site.city,
+          state: site.state,
+          zipcode: site.zipcode,
+          store: site.store,
+          siteMapUrl: site.siteMapUrl || "",
+          lat: site.lat,
+          lng: site.lng,
+          client: formValues.client,
+          serviceLines: [serviceLine],
+          handoffId: handoffId,
+          subcontractors: [],
+        };
+
+        console.log("saving site for handoff", siteToSave);
+
+        console.log("service line to save", serviceLine);
+        await saveItemToAzure("sites", siteToSave);
       }
 
       setSuccess(true);

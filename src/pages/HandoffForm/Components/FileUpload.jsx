@@ -111,9 +111,15 @@ function FileUpload() {
         // Add unique id and normalize Site Map column
         const sitesWithIds = jsonData.map((site, index) => ({
           ...site,
+          address: site["Address"] || "",
+          city: site["City"] || "",
+          state: site["State"] || "",
+          zipcode: site["Zipcode"] || "",
+          store: site["Store"] || "",
           rowId: index + 1,
           siteMapUrl: site["Site Map"] || "",
         }));
+        console.log("sites with ids", sitesWithIds);
         setSitesToUpload(sitesWithIds);
         setExcelFileName(file.name);
 

@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { useContext, useEffect, useMemo, useState } from "react";
 
 // Context
 import { HandoffContext } from "../HandoffForm";
@@ -20,6 +20,11 @@ import { Business } from "@mui/icons-material";
 // Constants
 import { softwares, serviceLines } from "../../../constants";
 
+// Functions
+import { getItemsFromAzure } from "../../../api/azureApi";
+
+const validStatuses = ["Active", "Sourcing"];
+
 const serviceLineOptions = serviceLines.map((sl) => ({
   ...sl,
   assignedTo: "",
@@ -32,6 +37,56 @@ function ClientInformation() {
   const handoffContext = useContext(HandoffContext);
   const { formValues, setFormValues } = handoffContext;
 
+  const [existingClients, setExistingClients] = useState([]);
+
+  useEffect(() => {
+    const fetchClients = async () => {
+      const response = await getItemsFromAzure("clients");
+      const clients = response.filter((client) =>
+        validStatuses.includes(client.status)
+      );
+      setExistingClients(clients);
+    };
+    fetchClients();
+  }, []);
+
+  const clientNames = useMemo(() => {
+    return existingClients.map((client) => client.client);
+  }, [existingClients]);
+
+  const handleClientChange = (e, value) => {
+    console.log("event", e);
+    console.log("selected client", value);
+
+    let updates = {
+      client: value?.trim(),
+    };
+
+    // If selected client exists, update contact information too
+    if (e.type === "click") {
+      const selectedClient = existingClients.find(
+        (client) => client.client === value
+      );
+      updates = {
+        ...updates,
+        contact: selectedClient.contact || {
+          name: "",
+          email: "",
+          phone: "",
+          secondaryName: "",
+          secondaryEmail: "",
+          secondaryPhone: "",
+          quickbooksId: "",
+        },
+      };
+    }
+
+    setFormValues((prev) => ({
+      ...prev,
+      ...updates,
+    }));
+  };
+
   return (
     <Box sx={{ mb: 4 }}>
       <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
@@ -43,6 +98,18 @@ function ClientInformation() {
 
       <Grid container spacing={3}>
         <Grid item size={{ xs: 12 }}>
+          <Autocomplete
+            renderInput={(params) => (
+              <TextField {...params} label="Client Name" required />
+            )}
+            value={formValues.client}
+            freeSolo
+            options={clientNames}
+            onChange={handleClientChange}
+          />
+        </Grid>
+
+        {/*         <Grid item size={{ xs: 12, md: 6 }}>
           <TextField
             fullWidth
             label="Client Name"
@@ -53,7 +120,7 @@ function ClientInformation() {
             required
             variant="outlined"
           />
-        </Grid>
+        </Grid> */}
 
         <Grid item size={{ xs: 12, md: 6 }}>
           <FormControl fullWidth required>

@@ -1,4 +1,4 @@
-import { useContext } from "react";
+import { memo, useContext, useCallback, useState } from "react";
 
 // Context
 import { HandoffContext } from "../HandoffForm";
@@ -12,9 +12,15 @@ import TextField from "@mui/material/TextField";
 // MUI Icons
 import { Payment } from "@mui/icons-material";
 
-function PaymentAndInvoicing() {
+const PaymentAndInvoicing = memo(function PaymentAndInvoicing() {
   const handoffContext = useContext(HandoffContext);
   const { formValues, setFormValues } = handoffContext;
+
+  const [localInvoicing, setLocalInvoicing] = useState("");
+
+  const handleChange = (e) => {
+    setLocalInvoicing(e.target.value);
+  };
 
   return (
     <Box sx={{ mb: 4 }}>
@@ -47,13 +53,8 @@ function PaymentAndInvoicing() {
           <TextField
             fullWidth
             label="Invoicing Directions"
-            value={formValues.invoicingDirections}
-            onChange={(e) =>
-              setFormValues({
-                ...formValues,
-                invoicingDirections: e.target.value,
-              })
-            }
+            value={localInvoicing}
+            onChange={handleChange}
             required
             multiline
             rows={4}
@@ -64,6 +65,6 @@ function PaymentAndInvoicing() {
       </Grid>
     </Box>
   );
-}
+});
 
 export default PaymentAndInvoicing;

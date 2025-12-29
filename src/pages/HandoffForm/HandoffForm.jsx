@@ -188,10 +188,12 @@ function HandoffForm() {
           siteMapUrl: site.siteMapUrl || "",
           lat: site.lat,
           lng: site.lng,
-          client: formValues.client,
+          client: formValues.client?.trim(),
           serviceLines: [serviceLine],
           handoffId: handoffId,
           subcontractors: [],
+          demo: true,
+          status: "Pending",
         };
 
         console.log("saving site for handoff", siteToSave);

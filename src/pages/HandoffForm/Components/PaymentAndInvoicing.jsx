@@ -1,4 +1,11 @@
-import { memo, useContext, useCallback, useState } from "react";
+import {
+  memo,
+  useContext,
+  useCallback,
+  useState,
+  useRef,
+  useEffect,
+} from "react";
 
 // Context
 import { HandoffContext } from "../HandoffForm";
@@ -18,9 +25,55 @@ const PaymentAndInvoicing = memo(function PaymentAndInvoicing() {
 
   const [localInvoicing, setLocalInvoicing] = useState("");
 
-  const handleChange = (e) => {
-    setLocalInvoicing(e.target.value);
-  };
+  const syncTimeoutRef = useRef(null);
+
+  const syncToParent = useCallback(
+    (value) => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+
+      // Set new timeout to sync after 500ms of no typing
+      syncTimeoutRef.current = setTimeout(() => {
+        setFormValues((prev) => ({
+          ...prev,
+          invoicingDirections: value,
+        }));
+      }, 500);
+    },
+    [setFormValues]
+  );
+
+  useEffect(() => {
+    setLocalInvoicing(formValues.invoicingDirections || "");
+  }, [formValues.invoicingDirections]);
+
+  const handleInvoicingChange = useCallback(
+    (e) => {
+      const value = e.target.value;
+      setLocalInvoicing(value);
+      syncToParent(value);
+    },
+    [syncToParent]
+  );
+
+  const handleInvoicingDirectionsBlur = useCallback(() => {
+    if (syncTimeoutRef.current) {
+      clearTimeout(syncTimeoutRef.current);
+    }
+    setFormValues((prev) => ({
+      ...prev,
+      invoicingDirections: localInvoicing,
+    }));
+  }, [localInvoicing, setFormValues]);
+
+  useEffect(() => {
+    return () => {
+      if (syncTimeoutRef.current) {
+        clearTimeout(syncTimeoutRef.current);
+      }
+    };
+  }, []);
 
   return (
     <Box sx={{ mb: 4 }}>
@@ -54,7 +107,8 @@ const PaymentAndInvoicing = memo(function PaymentAndInvoicing() {
             fullWidth
             label="Invoicing Directions"
             value={localInvoicing}
-            onChange={handleChange}
+            onChange={handleInvoicingChange}
+            onBlur={handleInvoicingDirectionsBlur}
             required
             multiline
             rows={4}

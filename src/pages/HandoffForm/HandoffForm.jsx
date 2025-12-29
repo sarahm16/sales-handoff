@@ -89,7 +89,7 @@ const initialFormValues = {
 
 function HandoffForm() {
   const user = useAuth()?.user;
-  const email = user?.email || "unknown_user";
+  const email = user?.mail || "unknown_user";
   const [sitesToUpload, setSitesToUpload] = useState([]);
   const [loading, setLoading] = useState(false);
   const [formValues, setFormValues] = useState(initialFormValues);
@@ -162,6 +162,13 @@ function HandoffForm() {
         createdBy: user,
         createdByEmail: email,
         createdAt: new Date().toISOString(),
+        activity: [
+          {
+            date: new Date().getTime(),
+            user,
+            action: "Created handoff",
+          },
+        ],
       });
 
       const handoffId = handoffResponse.id;
@@ -194,12 +201,56 @@ function HandoffForm() {
           subcontractors: [],
           demo: true,
           status: "Pending",
+          activity: [
+            {
+              date: new Date().getTime(),
+              user,
+              action: "Created site for handoff",
+            },
+          ],
         };
 
         console.log("saving site for handoff", siteToSave);
 
         console.log("service line to save", serviceLine);
         await saveItemToAzure("sites", siteToSave);
+      }
+
+      // If new client, save to clients container
+      if (formValues?.contact?.secondaryName) {
+        // Simple check to see if client is new
+        const newClient = {
+          client: formValues.client?.trim(),
+          contact: {
+            name: formValues.contact.name,
+            email: formValues.contact.email,
+            phone: formValues.contact.phone,
+            secondaryName: formValues.contact.secondaryName,
+            secondaryEmail: formValues.contact.secondaryEmail,
+            secondaryPhone: formValues.contact.secondaryPhone,
+            quickbooksId: "",
+          },
+          documents: [
+            {
+              name: contract.name,
+              url: contractUrl[0],
+            },
+          ],
+          serviceLines: [formValues.serviceLine],
+          status: "Pending",
+          createdBy: user,
+          createdByEmail: email,
+          createdAt: new Date().toISOString(),
+          activity: [
+            {
+              date: new Date().getTime(),
+              user,
+              action: "Created client for handoff",
+            },
+          ],
+        };
+        console.log("saving new client", newClient);
+        await saveItemToAzure("clients", newClient);
       }
 
       setSuccess(true);

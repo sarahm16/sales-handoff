@@ -50,6 +50,12 @@ function ValidationSummary({
       section: "Client Information",
     });
 
+    items.push({
+      label: "Address",
+      valid: !!formValues.address,
+      section: "Client Information",
+    });
+
     // Service Line
     items.push({
       label: "Service Line",

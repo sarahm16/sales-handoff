@@ -58,6 +58,9 @@ export const HandoffContext = createContext({
 
 const initialFormValues = {
   client: "",
+  address: "",
+  store: "",
+  documents: [],
   contractUrl: "",
   serviceLine: {
     name: "Snow",
@@ -85,6 +88,8 @@ const initialFormValues = {
   startDate: "",
   endDate: "",
   notes: [],
+  lat: 0,
+  lng: 0,
 };
 
 function HandoffForm() {
@@ -122,23 +127,24 @@ function HandoffForm() {
       formValues.contact.phone &&
       formValues.renewal &&
       formValues.startDate &&
-      (formValues.renewal === "Fixed Term" ? formValues.duration : true),
-    [
-      loading,
-      contract,
-      sitesToUpload.length,
-      formValues.client,
-      formValues.serviceLine,
-      formValues.paymentTerms,
-      formValues.invoicingDirections,
-      formValues.software,
-      formValues.contact.name,
-      formValues.contact.email,
-      formValues.contact.phone,
-      formValues.renewal,
-      formValues.startDate,
-      formValues.duration,
-    ]
+      (formValues.renewal === "Fixed Term" ? formValues.duration : true) &&
+      formValues.address[
+        (loading,
+        contract,
+        sitesToUpload.length,
+        formValues.client,
+        formValues.serviceLine,
+        formValues.paymentTerms,
+        formValues.invoicingDirections,
+        formValues.software,
+        formValues.contact.name,
+        formValues.contact.email,
+        formValues.contact.phone,
+        formValues.renewal,
+        formValues.startDate,
+        formValues.duration,
+        formValues.address)
+      ]
   );
 
   // Memoize handlers with useCallback
@@ -187,6 +193,8 @@ function HandoffForm() {
         };
 
         const siteToSave = {
+          demo: true, // Remove in production
+
           address: site.address,
           city: site.city,
           state: site.state,
@@ -199,7 +207,6 @@ function HandoffForm() {
           serviceLines: [serviceLine],
           handoffId: handoffId,
           subcontractors: [],
-          demo: true,
           status: "Pending",
           activity: [
             {
@@ -208,6 +215,7 @@ function HandoffForm() {
               action: "Created site for handoff",
             },
           ],
+          software: formValues.software,
         };
 
         console.log("saving site for handoff", siteToSave);
@@ -220,7 +228,11 @@ function HandoffForm() {
       if (formValues?.contact?.secondaryName) {
         // Simple check to see if client is new
         const newClient = {
+          demo: true, // Remove in production
           client: formValues.client?.trim(),
+          address: formValues.address,
+          lat: formValues.lat,
+          lng: formValues.lng,
           contact: {
             name: formValues.contact.name,
             email: formValues.contact.email,
@@ -237,6 +249,7 @@ function HandoffForm() {
             },
           ],
           serviceLines: [formValues.serviceLine],
+          software: formValues.software,
           status: "Pending",
           createdBy: user,
           createdByEmail: email,

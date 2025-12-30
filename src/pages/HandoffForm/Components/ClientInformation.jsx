@@ -59,32 +59,35 @@ function ClientInformation() {
     console.log("event", e);
     console.log("selected client", value);
 
-    let updates = {
+    const selectedClient = existingClients.find(
+      (client) => client.client === value
+    );
+    updates = {
+      newClient: false,
       client: value?.trim(),
+      contact: selectedClient.contact || {
+        name: "",
+        email: "",
+        phone: "",
+        secondaryName: "",
+        secondaryEmail: "",
+        secondaryPhone: "",
+        quickbooksId: "",
+      },
     };
-
-    // If selected client exists, update contact information too
-    if (e.type === "click") {
-      const selectedClient = existingClients.find(
-        (client) => client.client === value
-      );
-      updates = {
-        ...updates,
-        contact: selectedClient.contact || {
-          name: "",
-          email: "",
-          phone: "",
-          secondaryName: "",
-          secondaryEmail: "",
-          secondaryPhone: "",
-          quickbooksId: "",
-        },
-      };
-    }
 
     setFormValues((prev) => ({
       ...prev,
       ...updates,
+    }));
+  };
+
+  const handleClientInputChange = (e, value) => {
+    console.log("client input change", value);
+    setFormValues((prev) => ({
+      ...prev,
+      client: value?.trim(),
+      newClient: true,
     }));
   };
 
@@ -97,6 +100,13 @@ function ClientInformation() {
         lng: place.geometry?.location.lng() || null,
       }));
     }
+  };
+
+  const handleSoftwareInputChange = (e, value) => {
+    setFormValues((prev) => ({
+      ...prev,
+      software: value?.trim(),
+    }));
   };
 
   const handleServiceLineChange = (e) => {
@@ -135,6 +145,7 @@ function ClientInformation() {
             freeSolo
             options={clientNames}
             onChange={handleClientChange}
+            onInputChange={handleClientInputChange}
           />
         </Grid>
 
@@ -148,7 +159,7 @@ function ClientInformation() {
             defaultValue={formValues.address || ""}
             style={{
               width: "100%",
-              padding: "16.5px 14px",
+              padding: "16.5px 0px 16.5px 14px",
               fontSize: "1rem",
               fontFamily: "inherit",
               borderRadius: "4px",
@@ -188,6 +199,7 @@ function ClientInformation() {
             onChange={(e, value) =>
               setFormValues({ ...formValues, software: value })
             }
+            onInputChange={handleSoftwareInputChange}
           />
         </Grid>
       </Grid>

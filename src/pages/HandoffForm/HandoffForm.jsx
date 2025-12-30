@@ -1,4 +1,10 @@
-import { createContext, useMemo, useState, useCallback } from "react";
+import {
+  createContext,
+  useMemo,
+  useState,
+  useCallback,
+  useEffect,
+} from "react";
 import * as XLSX from "xlsx";
 import { v4 as uuidv4 } from "uuid";
 
@@ -59,7 +65,6 @@ export const HandoffContext = createContext({
 const initialFormValues = {
   client: "",
   address: "",
-  store: "",
   documents: [],
   contractUrl: "",
   serviceLine: {
@@ -90,6 +95,7 @@ const initialFormValues = {
   notes: [],
   lat: 0,
   lng: 0,
+  newClient: false,
 };
 
 function HandoffForm() {
@@ -128,24 +134,29 @@ function HandoffForm() {
       formValues.renewal &&
       formValues.startDate &&
       (formValues.renewal === "Fixed Term" ? formValues.duration : true) &&
-      formValues.address[
-        (loading,
-        contract,
-        sitesToUpload.length,
-        formValues.client,
-        formValues.serviceLine,
-        formValues.paymentTerms,
-        formValues.invoicingDirections,
-        formValues.software,
-        formValues.contact.name,
-        formValues.contact.email,
-        formValues.contact.phone,
-        formValues.renewal,
-        formValues.startDate,
-        formValues.duration,
-        formValues.address)
-      ]
+      formValues.address,
+    [
+      loading,
+      contract,
+      sitesToUpload.length,
+      formValues.client,
+      formValues.serviceLine,
+      formValues.paymentTerms,
+      formValues.invoicingDirections,
+      formValues.software,
+      formValues.contact.name,
+      formValues.contact.email,
+      formValues.contact.phone,
+      formValues.renewal,
+      formValues.startDate,
+      formValues.duration,
+      formValues.address,
+    ]
   );
+
+  useEffect(() => {
+    console.log("Form Values Updated: ", formValues);
+  }, [formValues]);
 
   // Memoize handlers with useCallback
   const handleSubmit = useCallback(async () => {
@@ -225,7 +236,7 @@ function HandoffForm() {
       }
 
       // If new client, save to clients container
-      if (formValues?.contact?.secondaryName) {
+      if (formValues?.newClient) {
         // Simple check to see if client is new
         const newClient = {
           demo: true, // Remove in production
@@ -261,6 +272,7 @@ function HandoffForm() {
               action: "Created client for handoff",
             },
           ],
+          handoffId: handoffId,
         };
         console.log("saving new client", newClient);
         await saveItemToAzure("clients", newClient);

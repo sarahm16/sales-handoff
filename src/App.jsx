@@ -1,6 +1,12 @@
 import { useEffect } from "react";
 import { useMsal } from "@azure/msal-react";
-import { Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import {
+  Route,
+  Routes,
+  useLocation,
+  useNavigate,
+  Link,
+} from "react-router-dom";
 
 // Route imports
 import Auth from "./pages/Auth/Auth.jsx";
@@ -10,6 +16,16 @@ import OpenHandoff from "./pages/OpenHandoff/Openhandoff.jsx";
 // Component imports
 import Layout from "./components/PageLayout.jsx";
 import HandoffForm from "./pages/HandoffForm/HandoffForm.jsx";
+
+const NotFound = () => {
+  return (
+    <div style={{ padding: "2rem", textAlign: "center" }}>
+      <h1>404 - Page Not Found</h1>
+      <p>The page you're looking for doesn't exist.</p>
+      <Link to="/">Go back home</Link>
+    </div>
+  );
+};
 
 function ProtectedRoute({ children }) {
   const { accounts, instance, inProgress } = useMsal();
@@ -95,6 +111,7 @@ function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

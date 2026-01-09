@@ -114,3 +114,5 @@ export const units = [
   "Month",
   "Season",
 ];
+
+export const serviceTypes = ["Per Event", "Per Season", "Per Push"];

@@ -23,7 +23,7 @@ import {
 } from "@mui/material";
 
 // Constants
-import { serviceLineServices } from "../../constants";
+import { serviceLineServices, serviceTypes } from "../../constants";
 
 // Auth
 import { useAuth } from "../../auth/useAuth";
@@ -96,6 +96,7 @@ const initialFormValues = {
   lat: 0,
   lng: 0,
   newClient: false,
+  serviceType: "Per Event",
 };
 
 function HandoffForm() {
@@ -205,7 +206,6 @@ function HandoffForm() {
 
         const siteToSave = {
           demo: true, // Remove in production
-
           address: site.address,
           city: site.city,
           state: site.state,

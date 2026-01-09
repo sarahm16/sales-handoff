@@ -4,7 +4,7 @@ import App from "./App.jsx";
 import { BrowserRouter } from "react-router-dom";
 
 import { MsalProvider } from "@azure/msal-react";
-import { PublicClientApplication } from "@azure/msal-browser";
+import { PublicClientApplication, EventType } from "@azure/msal-browser";
 
 const msalConfig = {
   auth: {
@@ -12,9 +12,8 @@ const msalConfig = {
     authority: `https://login.microsoftonline.com/${
       import.meta.env.VITE_APP_AZURE_TENANT_ID
     }`,
-    redirectUri: "http://localhost:5175/auth",
-    /*     navigateToLoginRequestUrl: true,
-     */
+    /*     redirectUri: "http://localhost:5174/auth",
+     */ redirectUri: "https://sales.nfcfm.com/auth",
   },
   cache: {
     cacheLocation: "localStorage",
@@ -41,26 +40,24 @@ function Root() {
         if (response) {
           console.log("✅ User authenticated via redirect");
           pca.setActiveAccount(response.account);
-        }
-
-        // Set active account from cache if available
-        const accounts = pca.getAllAccounts();
-        console.log("📦 Cached accounts:", accounts);
-        if (accounts.length === 1) {
-          console.log("👤 Setting active account from cache");
-          pca.setActiveAccount(accounts[0]);
-        } else if (accounts.length > 1) {
-          console.warn(
-            "⚠️ Multiple accounts found; you may need account selection logic."
-          );
         } else {
-          console.log("ℹ️ No cached accounts found.");
+          // Set active account from cache if available
+          const accounts = pca.getAllAccounts();
+          console.log("📦 Cached accounts:", accounts);
+          if (accounts.length === 1) {
+            console.log("👤 Setting active account from cache");
+            pca.setActiveAccount(accounts[0]);
+          } else if (accounts.length > 1) {
+            console.warn("⚠️ Multiple accounts found");
+          }
         }
 
+        // Mark as ready AFTER all auth processing is complete
         setIsReady(true);
         console.log("✅ MSAL ready, rendering app.");
       } catch (err) {
         console.error("💥 MSAL init error:", err);
+        setIsReady(true); // Still render app to show error state
       }
     }
 

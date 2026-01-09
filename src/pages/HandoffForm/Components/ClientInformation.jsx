@@ -19,7 +19,7 @@ import MuiAutocomplete from "@mui/material/Autocomplete";
 import { Business } from "@mui/icons-material";
 
 // Constants
-import { softwares, serviceLines } from "../../../constants";
+import { softwares, serviceLines, serviceTypes } from "../../../constants";
 
 // Functions
 import { getItemsFromAzure } from "../../../api/azureApi";
@@ -40,6 +40,14 @@ function ClientInformation() {
 
   const [existingClients, setExistingClients] = useState([]);
 
+  // Local state for performance optimization
+  const [localClientValue, setLocalClientValue] = useState(
+    formValues.client || ""
+  );
+  const [localSoftwareValue, setLocalSoftwareValue] = useState(
+    formValues.software || ""
+  );
+
   useEffect(() => {
     const fetchClients = async () => {
       const response = await getItemsFromAzure("clients");
@@ -50,6 +58,15 @@ function ClientInformation() {
     };
     fetchClients();
   }, []);
+
+  // Sync local state with form values when they change externally
+  useEffect(() => {
+    setLocalClientValue(formValues.client || "");
+  }, [formValues.client]);
+
+  useEffect(() => {
+    setLocalSoftwareValue(formValues.software || "");
+  }, [formValues.software]);
 
   const clientNames = useMemo(() => {
     return existingClients.map((client) => client.client);
@@ -62,10 +79,11 @@ function ClientInformation() {
     const selectedClient = existingClients.find(
       (client) => client.client === value
     );
-    updates = {
+
+    const updates = {
       newClient: false,
       client: value?.trim(),
-      contact: selectedClient.contact || {
+      contact: selectedClient?.contact || {
         name: "",
         email: "",
         phone: "",
@@ -76,6 +94,7 @@ function ClientInformation() {
       },
     };
 
+    setLocalClientValue(value || "");
     setFormValues((prev) => ({
       ...prev,
       ...updates,
@@ -84,11 +103,18 @@ function ClientInformation() {
 
   const handleClientInputChange = (e, value) => {
     console.log("client input change", value);
-    setFormValues((prev) => ({
-      ...prev,
-      client: value?.trim(),
-      newClient: true,
-    }));
+    setLocalClientValue(value || "");
+  };
+
+  const handleClientBlur = () => {
+    // Sync to parent on blur
+    if (localClientValue !== formValues.client) {
+      setFormValues((prev) => ({
+        ...prev,
+        client: localClientValue?.trim(),
+        newClient: true,
+      }));
+    }
   };
 
   const handlePlaceSelected = (place) => {
@@ -102,11 +128,26 @@ function ClientInformation() {
     }
   };
 
-  const handleSoftwareInputChange = (e, value) => {
+  const handleSoftwareChange = (e, value) => {
+    setLocalSoftwareValue(value || "");
     setFormValues((prev) => ({
       ...prev,
       software: value?.trim(),
     }));
+  };
+
+  const handleSoftwareInputChange = (e, value) => {
+    setLocalSoftwareValue(value || "");
+  };
+
+  const handleSoftwareBlur = () => {
+    // Sync to parent on blur
+    if (localSoftwareValue !== formValues.software) {
+      setFormValues((prev) => ({
+        ...prev,
+        software: localSoftwareValue?.trim(),
+      }));
+    }
   };
 
   const handleServiceLineChange = (e) => {
@@ -126,6 +167,13 @@ function ClientInformation() {
     }));
   };
 
+  const handleServiceTypeChange = (e) => {
+    setFormValues((prev) => ({
+      ...prev,
+      serviceType: e.target.value,
+    }));
+  };
+
   return (
     <Box sx={{ mb: 4 }}>
       <Box sx={{ display: "flex", alignItems: "center", mb: 3 }}>
@@ -139,9 +187,15 @@ function ClientInformation() {
         <Grid item size={{ xs: 12 }}>
           <MuiAutocomplete
             renderInput={(params) => (
-              <TextField {...params} label="Client Name" required />
+              <TextField
+                {...params}
+                label="Client Name"
+                required
+                onBlur={handleClientBlur}
+              />
             )}
-            value={formValues.client}
+            value={localClientValue}
+            inputValue={localClientValue}
             freeSolo
             options={clientNames}
             onChange={handleClientChange}
@@ -189,16 +243,36 @@ function ClientInformation() {
         </Grid>
 
         <Grid item size={{ xs: 12, md: 6 }}>
+          <FormControl fullWidth required>
+            <InputLabel>Service Type</InputLabel>
+            <Select
+              value={formValues.serviceType || ""}
+              label="Service Type"
+              onChange={handleServiceTypeChange}
+            >
+              {serviceTypes.map((type) => (
+                <MenuItem key={type} value={type}>
+                  {type}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        <Grid item size={{ xs: 12 }}>
           <MuiAutocomplete
             renderInput={(params) => (
-              <TextField {...params} label="Software Portal" />
+              <TextField
+                {...params}
+                label="Software Portal"
+                onBlur={handleSoftwareBlur}
+              />
             )}
-            label="Software Portal"
+            value={localSoftwareValue}
+            inputValue={localSoftwareValue}
             freeSolo
             options={softwares}
-            onChange={(e, value) =>
-              setFormValues({ ...formValues, software: value })
-            }
+            onChange={handleSoftwareChange}
             onInputChange={handleSoftwareInputChange}
           />
         </Grid>

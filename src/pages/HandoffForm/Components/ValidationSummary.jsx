@@ -2,8 +2,6 @@ import { useMemo } from "react";
 import Box from "@mui/material/Box";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
-import Alert from "@mui/material/Alert";
-import AlertTitle from "@mui/material/AlertTitle";
 import List from "@mui/material/List";
 import ListItem from "@mui/material/ListItem";
 import ListItemIcon from "@mui/material/ListItemIcon";
@@ -70,25 +68,32 @@ function ValidationSummary({
       section: "Client Information",
     });
 
-    // Contact Name
+    // Primary Contact - either noContact or all fields filled
+    const primaryContactValid =
+      formValues.contact?.noContact ||
+      (!!formValues.contact?.name &&
+        !!formValues.contact?.email &&
+        !!formValues.contact?.phone);
+
     items.push({
-      label: "Contact Name",
-      valid: !!formValues.contact?.name,
+      label: "Primary Contact",
+      valid: primaryContactValid,
       section: "Contact Information",
+      detail: formValues.contact?.noContact ? "No contact" : null,
     });
 
-    // Contact Email
-    items.push({
-      label: "Contact Email",
-      valid: !!formValues.contact?.email,
-      section: "Contact Information",
-    });
+    // Billing Contact - either noContact or all fields filled
+    const billingContactValid =
+      formValues.billingContact?.noContact ||
+      (!!formValues.billingContact?.name &&
+        !!formValues.billingContact?.email &&
+        !!formValues.billingContact?.phone);
 
-    // Contact Phone
     items.push({
-      label: "Contact Phone",
-      valid: !!formValues.contact?.phone,
+      label: "Billing Contact",
+      valid: billingContactValid,
       section: "Contact Information",
+      detail: formValues.billingContact?.noContact ? "No contact" : null,
     });
 
     // Renewal Type
@@ -121,6 +126,22 @@ function ValidationSummary({
       section: "Payment & Invoicing",
     });
 
+    // Payment Method
+    items.push({
+      label: "Payment Method",
+      valid: !!formValues.paymentMethod,
+      section: "Payment & Invoicing",
+    });
+
+    // 3rd Party Provider (only required if payment method is 3rd Party)
+    if (formValues.paymentMethod === "3rd Party") {
+      items.push({
+        label: "3rd Party Payment Provider",
+        valid: !!formValues.thirdPartyPaymentProvider,
+        section: "Payment & Invoicing",
+      });
+    }
+
     // Invoicing Directions
     items.push({
       label: "Invoicing Directions",
@@ -146,18 +167,17 @@ function ValidationSummary({
     [completedItems.length, validationItems.length]
   );
 
-  // Don't show if form is valid
-  if (isFormValid) {
-    return null;
-  }
-
   return (
     <Paper
       elevation={0}
       sx={{
-        mb: 3,
         border: "2px solid",
-        borderColor: missingItems.length > 0 ? "warning.main" : "success.main",
+        borderColor:
+          missingItems.length > 0
+            ? "warning.main"
+            : isFormValid
+            ? "success.main"
+            : "grey.300",
         borderRadius: 2,
         overflow: "hidden",
       }}
@@ -165,7 +185,11 @@ function ValidationSummary({
       {/* Header */}
       <Box
         sx={{
-          bgcolor: missingItems.length > 0 ? "warning.50" : "success.50",
+          bgcolor: isFormValid
+            ? "success.50"
+            : missingItems.length > 0
+            ? "warning.50"
+            : "grey.50",
           p: 2,
           display: "flex",
           alignItems: "center",
@@ -175,21 +199,25 @@ function ValidationSummary({
         onClick={() => setExpanded(!expanded)}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 2, flex: 1 }}>
-          {missingItems.length > 0 ? (
+          {isFormValid ? (
+            <CheckCircle sx={{ color: "success.main", fontSize: 28 }} />
+          ) : missingItems.length > 0 ? (
             <ErrorOutline sx={{ color: "warning.main", fontSize: 28 }} />
           ) : (
-            <CheckCircle sx={{ color: "success.main", fontSize: 28 }} />
+            <ErrorOutline sx={{ color: "grey.400", fontSize: 28 }} />
           )}
           <Box>
             <Typography variant="subtitle1" fontWeight={600}>
               Form Completion: {completionPercentage}%
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              {missingItems.length > 0
+              {isFormValid
+                ? "Ready to submit!"
+                : missingItems.length > 0
                 ? `${missingItems.length} required field${
                     missingItems.length !== 1 ? "s" : ""
                   } remaining`
-                : "All required fields completed!"}
+                : "Start filling out the form"}
             </Typography>
           </Box>
         </Box>
@@ -202,7 +230,11 @@ function ValidationSummary({
       <Box sx={{ bgcolor: "grey.100", height: 4 }}>
         <Box
           sx={{
-            bgcolor: missingItems.length > 0 ? "warning.main" : "success.main",
+            bgcolor: isFormValid
+              ? "success.main"
+              : missingItems.length > 0
+              ? "warning.main"
+              : "grey.300",
             height: "100%",
             width: `${completionPercentage}%`,
             transition: "width 0.3s ease",
@@ -212,7 +244,7 @@ function ValidationSummary({
 
       {/* Expandable Content */}
       <Collapse in={expanded}>
-        <Box sx={{ p: 2 }}>
+        <Box sx={{ p: 2, maxHeight: "70vh", overflow: "auto" }}>
           {/* Missing Items */}
           {missingItems.length > 0 && (
             <Box sx={{ mb: 2 }}>

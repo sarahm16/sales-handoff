@@ -15,9 +15,15 @@ import Box from "@mui/material/Box";
 import Typography from "@mui/material/Typography";
 import Grid from "@mui/material/Grid";
 import TextField from "@mui/material/TextField";
+import FormControl from "@mui/material/FormControl";
+import InputLabel from "@mui/material/InputLabel";
+import Select from "@mui/material/Select";
+import MenuItem from "@mui/material/MenuItem";
 
 // MUI Icons
 import { Payment } from "@mui/icons-material";
+
+const paymentMethods = ["ACH", "Check", "Wire", "3rd Party"];
 
 const PaymentAndInvoicing = memo(function PaymentAndInvoicing() {
   const handoffContext = useContext(HandoffContext);
@@ -85,11 +91,11 @@ const PaymentAndInvoicing = memo(function PaymentAndInvoicing() {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid item size={{ xs: 12 }}>
+        <Grid item size={{ xs: 12, md: 6 }}>
           <TextField
             fullWidth
             label="Payment Terms"
-            value={formValues.paymentTerms}
+            value={formValues.paymentTerms || ""}
             onChange={(e) =>
               setFormValues({
                 ...formValues,
@@ -97,10 +103,55 @@ const PaymentAndInvoicing = memo(function PaymentAndInvoicing() {
               })
             }
             required
-            placeholder="e.g., Net 30"
+            placeholder="e.g., Net 30, Due on Receipt"
             variant="outlined"
           />
         </Grid>
+
+        <Grid item size={{ xs: 12, md: 6 }}>
+          <FormControl fullWidth required>
+            <InputLabel>Payment Method</InputLabel>
+            <Select
+              value={formValues.paymentMethod || ""}
+              label="Payment Method"
+              onChange={(e) =>
+                setFormValues({
+                  ...formValues,
+                  paymentMethod: e.target.value,
+                  // Clear 3rd party provider if switching away from 3rd Party
+                  ...(e.target.value !== "3rd Party" && {
+                    thirdPartyPaymentProvider: "",
+                  }),
+                })
+              }
+            >
+              {paymentMethods.map((method) => (
+                <MenuItem key={method} value={method}>
+                  {method}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </Grid>
+
+        {formValues.paymentMethod === "3rd Party" && (
+          <Grid item size={{ xs: 12 }}>
+            <TextField
+              fullWidth
+              label="3rd Party Payment Provider"
+              value={formValues.thirdPartyPaymentProvider || ""}
+              onChange={(e) =>
+                setFormValues({
+                  ...formValues,
+                  thirdPartyPaymentProvider: e.target.value,
+                })
+              }
+              required
+              placeholder="e.g., Bill.com, AvidXchange, Stripe"
+              variant="outlined"
+            />
+          </Grid>
+        )}
 
         <Grid item size={{ xs: 12 }}>
           <TextField
@@ -112,8 +163,9 @@ const PaymentAndInvoicing = memo(function PaymentAndInvoicing() {
             required
             multiline
             rows={4}
-            placeholder="Enter detailed invoicing instructions..."
+            placeholder="Specify invoicing frequency and timing (e.g., 'Per event - invoice after each service', 'Monthly at end of month', 'Monthly at beginning of month', 'Seasonally - invoice at end of season', etc.)"
             variant="outlined"
+            helperText="Include details about when and how often invoices should be sent"
           />
         </Grid>
       </Grid>

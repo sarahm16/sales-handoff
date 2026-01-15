@@ -20,6 +20,8 @@ import {
   Container,
   Divider,
   Tooltip,
+  Grid,
+  Paper,
 } from "@mui/material";
 
 // Constants
@@ -60,6 +62,7 @@ export const HandoffContext = createContext({
   pricingColumns: [],
   setPricingColumns: () => {},
   availableServices: [],
+  availableServiceTypes: [],
 });
 
 const initialFormValues = {
@@ -86,7 +89,16 @@ const initialFormValues = {
     name: "",
     email: "",
     phone: "",
+    noContact: false,
   },
+  billingContact: {
+    name: "",
+    email: "",
+    phone: "",
+    noContact: false,
+  },
+  paymentMethod: "",
+  thirdPartyPaymentProvider: "",
   renewal: "Auto-Renewing",
   duration: "",
   annualEscalation: "",
@@ -97,6 +109,22 @@ const initialFormValues = {
   lng: 0,
   newClient: false,
   serviceType: "Per Event",
+};
+
+// Service types by service line
+const getServiceTypesByServiceLine = (serviceLineName) => {
+  switch (serviceLineName) {
+    case "Snow":
+      return ["Per Event", "Per Season", "Per Push"];
+    case "Janitorial":
+    case "Landscaping":
+    case "Lot Sweeping":
+      return ["Per Service"];
+    case "On Demand":
+      return ["1 Time Service"];
+    default:
+      return ["Per Event"];
+  }
 };
 
 function HandoffForm() {
@@ -118,6 +146,12 @@ function HandoffForm() {
     [formValues.serviceLine?.name]
   );
 
+  // Memoize available service types based on service line
+  const availableServiceTypes = useMemo(
+    () => getServiceTypesByServiceLine(formValues.serviceLine?.name),
+    [formValues.serviceLine?.name]
+  );
+
   // Memoize form validation
   const isFormValid = useMemo(
     () =>
@@ -129,9 +163,19 @@ function HandoffForm() {
       formValues.paymentTerms &&
       formValues.invoicingDirections &&
       formValues.software &&
-      formValues.contact.name &&
-      formValues.contact.email &&
-      formValues.contact.phone &&
+      // Regular contact validation
+      (formValues.contact.noContact ||
+        (formValues.contact.name &&
+          formValues.contact.email &&
+          formValues.contact.phone)) &&
+      // Billing contact validation
+      (formValues.billingContact.noContact ||
+        (formValues.billingContact.name &&
+          formValues.billingContact.email &&
+          formValues.billingContact.phone)) &&
+      formValues.paymentMethod &&
+      (formValues.paymentMethod !== "3rd Party" ||
+        formValues.thirdPartyPaymentProvider) &&
       formValues.renewal &&
       formValues.startDate &&
       (formValues.renewal === "Fixed Term" ? formValues.duration : true) &&
@@ -148,6 +192,13 @@ function HandoffForm() {
       formValues.contact.name,
       formValues.contact.email,
       formValues.contact.phone,
+      formValues.contact.noContact,
+      formValues.billingContact.name,
+      formValues.billingContact.email,
+      formValues.billingContact.phone,
+      formValues.billingContact.noContact,
+      formValues.paymentMethod,
+      formValues.thirdPartyPaymentProvider,
       formValues.renewal,
       formValues.startDate,
       formValues.duration,
@@ -158,6 +209,19 @@ function HandoffForm() {
   useEffect(() => {
     console.log("Form Values Updated: ", formValues);
   }, [formValues]);
+
+  // Update service type when service line changes
+  useEffect(() => {
+    const newServiceTypes = getServiceTypesByServiceLine(
+      formValues.serviceLine?.name
+    );
+    if (!newServiceTypes.includes(formValues.serviceType)) {
+      setFormValues((prev) => ({
+        ...prev,
+        serviceType: newServiceTypes[0],
+      }));
+    }
+  }, [formValues.serviceLine?.name, formValues.serviceType]);
 
   // Memoize handlers with useCallback
   const handleSubmit = useCallback(async () => {
@@ -230,29 +294,36 @@ function HandoffForm() {
         };
 
         console.log("saving site for handoff", siteToSave);
-
         console.log("service line to save", serviceLine);
         await saveItemToAzure("sites", siteToSave);
       }
 
       // If new client, save to clients container
       if (formValues?.newClient) {
-        // Simple check to see if client is new
         const newClient = {
           demo: true, // Remove in production
           client: formValues.client?.trim(),
           address: formValues.address,
           lat: formValues.lat,
           lng: formValues.lng,
-          contact: {
-            name: formValues.contact.name,
-            email: formValues.contact.email,
-            phone: formValues.contact.phone,
-            secondaryName: formValues.contact.secondaryName,
-            secondaryEmail: formValues.contact.secondaryEmail,
-            secondaryPhone: formValues.contact.secondaryPhone,
-            quickbooksId: "",
-          },
+          contact: formValues.contact.noContact
+            ? { noContact: true }
+            : {
+                name: formValues.contact.name,
+                email: formValues.contact.email,
+                phone: formValues.contact.phone,
+                secondaryName: formValues.contact.secondaryName,
+                secondaryEmail: formValues.contact.secondaryEmail,
+                secondaryPhone: formValues.contact.secondaryPhone,
+                quickbooksId: "",
+              },
+          billingContact: formValues.billingContact.noContact
+            ? { noContact: true }
+            : {
+                name: formValues.billingContact.name,
+                email: formValues.billingContact.email,
+                phone: formValues.billingContact.phone,
+              },
           documents: [
             {
               name: contract.name,
@@ -262,6 +333,8 @@ function HandoffForm() {
           serviceLines: [formValues.serviceLine],
           software: formValues.software,
           status: "Pending",
+          paymentMethod: formValues.paymentMethod,
+          thirdPartyPaymentProvider: formValues.thirdPartyPaymentProvider,
           createdBy: user,
           createdByEmail: email,
           createdAt: new Date().toISOString(),
@@ -292,7 +365,7 @@ function HandoffForm() {
     } finally {
       setLoading(false);
     }
-  }, [contract, formValues, sitesToUpload, user]);
+  }, [contract, formValues, sitesToUpload, user, email, pricingColumns]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
@@ -312,6 +385,7 @@ function HandoffForm() {
       pricingColumns,
       setPricingColumns,
       availableServices,
+      availableServiceTypes,
     }),
     [
       formValues,
@@ -322,6 +396,7 @@ function HandoffForm() {
       error,
       pricingColumns,
       availableServices,
+      availableServiceTypes,
     ]
   );
 
@@ -348,95 +423,111 @@ function HandoffForm() {
           px: 2,
         }}
       >
-        <Container maxWidth="lg">
-          <Card
-            elevation={10}
-            sx={{
-              borderRadius: 4,
-              overflow: "hidden",
-            }}
-          >
-            {/* Header */}
-            <FormHeader />
-
-            <CardContent sx={{ p: 5 }}>
-              {/* Client Information */}
-              <ClientInformation />
-
-              <Divider sx={{ my: 4 }} />
-
-              {/* File Upload Section */}
-              <FileUpload />
-
-              {/* Sites DataGrid */}
-              {showSitesGrid && <SitesDataGrid />}
-
-              {/* Pricing Configuration */}
-              {showPricingConfig && <PricingConfiguration />}
-
-              <Divider sx={{ my: 4 }} />
-
-              {/* Contact Information */}
-              <ContactInfo />
-
-              {/* Contract Details */}
-              <ContractDetails />
-
-              {/* Payment & Invoicing */}
-              <PaymentAndInvoicing />
-
-              {/* Validation Summary */}
-              <ValidationSummary
-                contract={contract}
-                sitesToUpload={sitesToUpload}
-                formValues={formValues}
-                isFormValid={isFormValid}
-              />
-
-              {/* Submit Button */}
-              <Tooltip
-                title={
-                  !isFormValid
-                    ? "Please complete all required fields above"
-                    : ""
-                }
-                arrow
-                placement="top"
+        <Container>
+          <Grid container spacing={3}>
+            {/* Left Column - Form */}
+            <Grid item xs={12} lg={8}>
+              <Card
+                elevation={10}
+                sx={{
+                  borderRadius: 4,
+                  overflow: "hidden",
+                }}
               >
-                <span>
-                  <Button
-                    variant="contained"
-                    fullWidth
-                    size="large"
-                    onClick={handleSubmit}
-                    disabled={!isFormValid}
-                    sx={{
-                      py: 2,
-                      fontSize: 16,
-                      fontWeight: 600,
-                      background:
-                        "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                      boxShadow: 3,
-                      "&:hover": {
-                        boxShadow: 6,
-                        transform: "translateY(-2px)",
-                        transition: "all 0.2s",
-                      },
-                      "&:disabled": {
-                        background: "grey.300",
-                      },
-                    }}
+                {/* Header */}
+                <FormHeader />
+
+                <CardContent sx={{ p: 5 }}>
+                  {/* Client Information */}
+                  <ClientInformation />
+
+                  <Divider sx={{ my: 4 }} />
+
+                  {/* File Upload Section */}
+                  <FileUpload />
+
+                  {/* Sites DataGrid */}
+                  {showSitesGrid && <SitesDataGrid />}
+
+                  {/* Pricing Configuration */}
+                  {showPricingConfig && <PricingConfiguration />}
+
+                  <Divider sx={{ my: 4 }} />
+
+                  {/* Contact Information */}
+                  <ContactInfo />
+
+                  {/* Contract Details */}
+                  <ContractDetails />
+
+                  {/* Payment & Invoicing */}
+                  <PaymentAndInvoicing />
+
+                  {/* Submit Button */}
+                  <Tooltip
+                    title={
+                      !isFormValid ? "Please complete all required fields" : ""
+                    }
+                    arrow
+                    placement="top"
                   >
-                    {loading ? (
-                      <CircularProgress size={24} color="inherit" />
-                    ) : (
-                      "Submit Handoff"
-                    )}
-                  </Button>
-                </span>
-              </Tooltip>
-            </CardContent>
-          </Card>
+                    <span>
+                      <Button
+                        variant="contained"
+                        fullWidth
+                        size="large"
+                        onClick={handleSubmit}
+                        disabled={!isFormValid}
+                        sx={{
+                          mt: 4,
+                          py: 2,
+                          fontSize: 16,
+                          fontWeight: 600,
+                          background:
+                            "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                          boxShadow: 3,
+                          "&:hover": {
+                            boxShadow: 6,
+                            transform: "translateY(-2px)",
+                            transition: "all 0.2s",
+                          },
+                          "&:disabled": {
+                            background: "grey.300",
+                          },
+                        }}
+                      >
+                        {loading ? (
+                          <CircularProgress size={24} color="inherit" />
+                        ) : (
+                          "Submit Handoff"
+                        )}
+                      </Button>
+                    </span>
+                  </Tooltip>
+                </CardContent>
+              </Card>
+            </Grid>
+
+            {/* Right Column - Validation Summary (Sticky) */}
+            <Grid item xs={12} lg={4}>
+              <Paper
+                elevation={4}
+                sx={{
+                  position: "sticky",
+                  top: 24,
+                  borderRadius: 4,
+                  overflow: "hidden",
+                }}
+              >
+                <ValidationSummary
+                  contract={contract}
+                  sitesToUpload={sitesToUpload}
+                  formValues={formValues}
+                  isFormValid={isFormValid}
+                />
+              </Paper>
+            </Grid>
+          </Grid>
         </Container>
 
         {/* Snackbars */}

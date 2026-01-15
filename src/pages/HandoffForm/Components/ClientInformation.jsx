@@ -19,7 +19,7 @@ import MuiAutocomplete from "@mui/material/Autocomplete";
 import { Business } from "@mui/icons-material";
 
 // Constants
-import { softwares, serviceLines, serviceTypes } from "../../../constants";
+import { softwares, serviceLines } from "../../../constants";
 
 // Functions
 import { getItemsFromAzure } from "../../../api/azureApi";
@@ -36,7 +36,7 @@ const serviceLineOptions = serviceLines.map((sl) => ({
 
 function ClientInformation() {
   const handoffContext = useContext(HandoffContext);
-  const { formValues, setFormValues } = handoffContext;
+  const { formValues, setFormValues, availableServiceTypes } = handoffContext;
 
   const [existingClients, setExistingClients] = useState([]);
 
@@ -91,6 +91,13 @@ function ClientInformation() {
         secondaryEmail: "",
         secondaryPhone: "",
         quickbooksId: "",
+        noContact: false,
+      },
+      billingContact: selectedClient?.billingContact || {
+        name: "",
+        email: "",
+        phone: "",
+        noContact: false,
       },
     };
 
@@ -250,7 +257,7 @@ function ClientInformation() {
               label="Service Type"
               onChange={handleServiceTypeChange}
             >
-              {serviceTypes.map((type) => (
+              {availableServiceTypes.map((type) => (
                 <MenuItem key={type} value={type}>
                   {type}
                 </MenuItem>

@@ -12,8 +12,10 @@ const msalConfig = {
     authority: `https://login.microsoftonline.com/${
       import.meta.env.VITE_APP_AZURE_TENANT_ID
     }`,
-    /*     redirectUri: "http://localhost:5174/auth",
-     */ redirectUri: "https://sales.nfcfm.com/auth",
+    redirectUri: "http://localhost:5174/auth",
+
+    /*     redirectUri: "https://sales.nfcfm.com/auth",
+     */
   },
   cache: {
     cacheLocation: "localStorage",

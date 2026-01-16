@@ -426,7 +426,7 @@ function HandoffForm() {
         <Container>
           <Grid container spacing={3}>
             {/* Left Column - Form */}
-            <Grid item xs={12} lg={8}>
+            <Grid size={{ xs: 12, lg: 8 }}>
               <Card
                 elevation={10}
                 sx={{
@@ -509,7 +509,7 @@ function HandoffForm() {
             </Grid>
 
             {/* Right Column - Validation Summary (Sticky) */}
-            <Grid item xs={12} lg={4}>
+            <Grid size={{ xs: 12, lg: 4 }}>
               <Paper
                 elevation={4}
                 sx={{

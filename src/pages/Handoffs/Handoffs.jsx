@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 
 // MUI Components
 import {
@@ -16,19 +17,15 @@ import { DataGrid } from "@mui/x-data-grid";
 
 // MUI Icons
 import {
-  Visibility,
-  Edit,
   CheckCircle,
   HourglassEmpty,
   Cancel,
   TrendingUp,
+  Launch,
 } from "@mui/icons-material";
 
 // API
 import { getItemsFromAzure } from "../../api/azureApi";
-
-// Components
-import HandoffDetailModal from "./Components/HandoffDetailModal";
 
 // Status color mapping
 const statusColors = {
@@ -49,11 +46,10 @@ const statusIcons = {
 };
 
 function HandoffsPage() {
+  const navigate = useNavigate();
   const [handoffs, setHandoffs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [selectedHandoff, setSelectedHandoff] = useState(null);
-  const [detailModalOpen, setDetailModalOpen] = useState(false);
 
   // Fetch handoffs on mount
   useEffect(() => {
@@ -75,23 +71,12 @@ function HandoffsPage() {
   };
 
   // Handle view handoff details
-  const handleViewHandoff = useCallback((handoff) => {
-    setSelectedHandoff(handoff);
-    setDetailModalOpen(true);
-  }, []);
-
-  // Handle close modal
-  const handleCloseModal = useCallback(() => {
-    setDetailModalOpen(false);
-    setSelectedHandoff(null);
-  }, []);
-
-  // Handle edit handoff
-  const handleEditHandoff = useCallback((handoff) => {
-    console.log("Edit handoff:", handoff);
-    // Navigate to edit page
-    // router.push(`/handoffs/${handoff.id}/edit`);
-  }, []);
+  const handleViewHandoff = useCallback(
+    (handoff) => {
+      navigate(`/handoffs/${handoff.id}`);
+    },
+    [navigate]
+  );
 
   // Format date for display
   const formatDate = (dateString) => {
@@ -193,36 +178,22 @@ function HandoffsPage() {
         sortable: false,
         filterable: false,
         renderCell: (params) => (
-          <Box sx={{ display: "flex", gap: 0.5 }}>
-            <Tooltip title="View Details">
-              <IconButton
-                size="small"
-                onClick={() => handleViewHandoff(params.row)}
-                sx={{
-                  color: "primary.main",
-                  "&:hover": { bgcolor: "primary.50" },
-                }}
-              >
-                <Visibility fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title="Edit Handoff">
-              <IconButton
-                size="small"
-                onClick={() => handleEditHandoff(params.row)}
-                sx={{
-                  color: "info.main",
-                  "&:hover": { bgcolor: "info.50" },
-                }}
-              >
-                <Edit fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <Tooltip title="View Details">
+            <IconButton
+              size="small"
+              onClick={() => handleViewHandoff(params.row)}
+              sx={{
+                color: "primary.main",
+                "&:hover": { bgcolor: "primary.50" },
+              }}
+            >
+              <Launch fontSize="small" />
+            </IconButton>
+          </Tooltip>
         ),
       },
     ],
-    [handleViewHandoff, handleEditHandoff]
+    [handleViewHandoff]
   );
 
   // Summary statistics
@@ -369,13 +340,6 @@ function HandoffsPage() {
           </Box>
         </Card>
       </Container>
-
-      {/* Detail Modal */}
-      <HandoffDetailModal
-        open={detailModalOpen}
-        onClose={handleCloseModal}
-        handoff={selectedHandoff}
-      />
     </Box>
   );
 }

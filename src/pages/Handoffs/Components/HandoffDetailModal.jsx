@@ -105,7 +105,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
             </Typography>
           </Box>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="caption" color="text.secondary">
                 Software Portal
               </Typography>
@@ -113,7 +113,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
                 {handoff.software || "N/A"}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="caption" color="text.secondary">
                 Service Line
               </Typography>
@@ -133,7 +133,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
             </Typography>
           </Box>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="caption" color="text.secondary">
                 Name
               </Typography>
@@ -141,7 +141,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
                 {handoff.contact?.name || "N/A"}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="caption" color="text.secondary">
                 Email
               </Typography>
@@ -149,7 +149,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
                 {handoff.contact?.email || "N/A"}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="caption" color="text.secondary">
                 Phone
               </Typography>
@@ -169,7 +169,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
             </Typography>
           </Box>
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid size={{ xs: 12, sm: 4 }}>
               <Typography variant="caption" color="text.secondary">
                 Renewal Type
               </Typography>
@@ -178,7 +178,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
               </Typography>
             </Grid>
             {handoff.duration && (
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Typography variant="caption" color="text.secondary">
                   Duration
                 </Typography>
@@ -188,7 +188,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
               </Grid>
             )}
             {handoff.annualEscalation && (
-              <Grid item xs={12} sm={4}>
+              <Grid size={{ xs: 12, sm: 4 }}>
                 <Typography variant="caption" color="text.secondary">
                   Annual Escalation
                 </Typography>
@@ -197,7 +197,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
                 </Typography>
               </Grid>
             )}
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="caption" color="text.secondary">
                 Start Date
               </Typography>
@@ -205,7 +205,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
                 {formatDate(handoff.startDate)}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Typography variant="caption" color="text.secondary">
                 End Date
               </Typography>
@@ -225,7 +225,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
             </Typography>
           </Box>
           <Grid container spacing={2}>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="caption" color="text.secondary">
                 Payment Terms
               </Typography>
@@ -233,7 +233,7 @@ function HandoffDetailModal({ open, onClose, handoff }) {
                 {handoff.paymentTerms || "N/A"}
               </Typography>
             </Grid>
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="caption" color="text.secondary">
                 Invoicing Directions
               </Typography>

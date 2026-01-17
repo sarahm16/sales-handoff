@@ -44,9 +44,6 @@ function ClientInformation() {
   const [localClientValue, setLocalClientValue] = useState(
     formValues.client || ""
   );
-  const [localSoftwareValue, setLocalSoftwareValue] = useState(
-    formValues.software || ""
-  );
 
   useEffect(() => {
     const fetchClients = async () => {
@@ -63,10 +60,6 @@ function ClientInformation() {
   useEffect(() => {
     setLocalClientValue(formValues.client || "");
   }, [formValues.client]);
-
-  useEffect(() => {
-    setLocalSoftwareValue(formValues.software || "");
-  }, [formValues.software]);
 
   const clientNames = useMemo(() => {
     return existingClients.map((client) => client.client);
@@ -136,25 +129,17 @@ function ClientInformation() {
   };
 
   const handleSoftwareChange = (e, value) => {
-    setLocalSoftwareValue(value || "");
     setFormValues((prev) => ({
       ...prev,
       software: value?.trim(),
     }));
   };
 
-  const handleSoftwareInputChange = (e, value) => {
-    setLocalSoftwareValue(value || "");
-  };
-
-  const handleSoftwareBlur = () => {
-    // Sync to parent on blur
-    if (localSoftwareValue !== formValues.software) {
-      setFormValues((prev) => ({
-        ...prev,
-        software: localSoftwareValue?.trim(),
-      }));
-    }
+  const handleNewSoftwareChange = (e) => {
+    setFormValues((prev) => ({
+      ...prev,
+      newSoftware: e.target.value,
+    }));
   };
 
   const handleServiceLineChange = (e) => {
@@ -269,19 +254,23 @@ function ClientInformation() {
         <Grid item size={{ xs: 12 }}>
           <MuiAutocomplete
             renderInput={(params) => (
-              <TextField
-                {...params}
-                label="Software Portal"
-                onBlur={handleSoftwareBlur}
-              />
+              <TextField {...params} label="Software Portal" />
             )}
-            value={localSoftwareValue}
-            inputValue={localSoftwareValue}
-            freeSolo
-            options={softwares}
+            value={formValues.software || ""}
             onChange={handleSoftwareChange}
-            onInputChange={handleSoftwareInputChange}
+            options={softwares}
           />
+
+          {formValues.software === "New Portal" && (
+            <TextField
+              label="Please specify the software portal"
+              fullWidth
+              required={formValues.software === "New Portal"}
+              sx={{ mt: 2 }}
+              value={formValues.newSoftware || ""}
+              onChange={handleNewSoftwareChange}
+            />
+          )}
         </Grid>
       </Grid>
     </Box>

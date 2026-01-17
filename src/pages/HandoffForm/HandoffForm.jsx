@@ -82,7 +82,7 @@ const initialFormValues = {
   handoffId: "",
   paymentTerms: "",
   invoicingDirections: "",
-  software: "No Portal",
+  software: "",
   numberOfSites: 0,
   demo: true,
   contact: {
@@ -230,8 +230,7 @@ function HandoffForm() {
     try {
       const contractUrl = await saveImagesToBlobStorage([contract]);
 
-      // Save handoff to handoffs container and get handoff ID
-      const handoffResponse = await saveItemToAzure("handoffs", {
+      let azureItemToSave = {
         ...formValues,
         contractUrl: contractUrl[0],
         numberOfSites: sitesToUpload.length,
@@ -251,8 +250,22 @@ function HandoffForm() {
             action: "Created handoff",
           },
         ],
-      });
+      };
 
+      if (formValues.software === "New Portal") {
+        azureItemToSave = {
+          ...azureItemToSave,
+          software: formValues.newSoftware,
+        };
+
+        delete azureItemToSave.newSoftware;
+      }
+
+      // Save handoff to handoffs container and get handoff ID
+      const handoffResponse = await saveItemToAzure(
+        "handoffs",
+        azureItemToSave
+      );
       const handoffId = handoffResponse.id;
 
       // Get Geo Coordinates for sites
@@ -290,7 +303,10 @@ function HandoffForm() {
               action: "Created site for handoff",
             },
           ],
-          software: formValues.software,
+          software:
+            formValues.software === "New Portal"
+              ? formValues.newSoftware
+              : formValues.software,
         };
 
         console.log("saving site for handoff", siteToSave);
@@ -331,7 +347,10 @@ function HandoffForm() {
             },
           ],
           serviceLines: [formValues.serviceLine],
-          software: formValues.software,
+          software:
+            formValues.software === "New Portal"
+              ? formValues.newSoftware
+              : formValues.software,
           status: "Pending",
           paymentMethod: formValues.paymentMethod,
           thirdPartyPaymentProvider: formValues.thirdPartyPaymentProvider,

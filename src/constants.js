@@ -35,6 +35,7 @@ export const serviceLines = [
 
 export const softwares = [
   "No Portal",
+  "New Portal",
   "Corrigo",
   "Coupa",
   "EcoTrak",

@@ -31,7 +31,7 @@ import { getItemsFromAzure } from "../../api/azureApi";
 const statusColors = {
   Pending: "warning",
   "In Progress": "info",
-  Completed: "success",
+  Approved: "success",
   Cancelled: "error",
   "On Hold": "default",
 };
@@ -40,7 +40,7 @@ const statusColors = {
 const statusIcons = {
   Pending: <HourglassEmpty fontSize="small" />,
   "In Progress": <TrendingUp fontSize="small" />,
-  Completed: <CheckCircle fontSize="small" />,
+  Approved: <CheckCircle fontSize="small" />,
   Cancelled: <Cancel fontSize="small" />,
   "On Hold": <HourglassEmpty fontSize="small" />,
 };
@@ -203,13 +203,13 @@ function HandoffsPage() {
     const inProgress = handoffs.filter(
       (h) => h.status === "In Progress"
     ).length;
-    const completed = handoffs.filter((h) => h.status === "Completed").length;
+    const approved = handoffs.filter((h) => h.status === "Approved").length;
     const totalSites = handoffs.reduce(
       (sum, h) => sum + (h.numberOfSites || 0),
       0
     );
 
-    return { total, pending, inProgress, completed, totalSites };
+    return { total, pending, inProgress, approved, totalSites };
   }, [handoffs]);
 
   if (loading) {
@@ -277,11 +277,11 @@ function HandoffsPage() {
 
           <Card sx={{ p: 2, flex: "1 1 200px", minWidth: 200 }}>
             <Typography variant="body2" color="text.secondary" gutterBottom>
-              Completed
+              Approved
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography variant="h4" fontWeight={700} color="success.main">
-                {stats.completed}
+                {stats.approved}
               </Typography>
               <CheckCircle color="success" />
             </Box>

@@ -51,12 +51,10 @@ export const HandoffContext = createContext({
   updateFormValues: () => {},
   sitesToUpload: [],
   setSitesToUpload: () => {},
-  contract: null,
-  setContract: () => {},
+  contracts: [],
+  setContracts: () => {},
   excelFileName: "",
   setExcelFileName: () => {},
-  contractFileName: "",
-  setContractFileName: () => {},
   error: "",
   setError: () => {},
   pricingColumns: [],
@@ -69,7 +67,6 @@ const initialFormValues = {
   client: "",
   address: "",
   documents: [],
-  contractUrl: "",
   serviceLine: {
     name: "Snow",
     id: 2,
@@ -134,9 +131,8 @@ function HandoffForm() {
   const [loading, setLoading] = useState(false);
   const [formValues, setFormValues] = useState(initialFormValues);
   const [error, setError] = useState("");
-  const [contract, setContract] = useState(null);
+  const [contracts, setContracts] = useState([]);
   const [excelFileName, setExcelFileName] = useState("");
-  const [contractFileName, setContractFileName] = useState("");
   const [success, setSuccess] = useState(false);
   const [pricingColumns, setPricingColumns] = useState([]);
 
@@ -156,7 +152,7 @@ function HandoffForm() {
   const isFormValid = useMemo(
     () =>
       !loading &&
-      contract &&
+      contracts.length > 0 &&
       sitesToUpload.length > 0 &&
       formValues.client &&
       formValues.serviceLine &&
@@ -182,7 +178,7 @@ function HandoffForm() {
       formValues.address,
     [
       loading,
-      contract,
+      contracts.length,
       sitesToUpload.length,
       formValues.client,
       formValues.serviceLine,
@@ -228,18 +224,16 @@ function HandoffForm() {
     setLoading(true);
 
     try {
-      const contractUrl = await saveImagesToBlobStorage([contract]);
+      const contractUrls = await saveImagesToBlobStorage(contracts);
 
       let azureItemToSave = {
         ...formValues,
-        contractUrl: contractUrl[0],
         numberOfSites: sitesToUpload.length,
-        documents: [
-          {
-            name: contract.name,
-            url: contractUrl[0],
-          },
-        ],
+        documents: contracts.map((contract, index) => ({
+          name: contract.name,
+          url: contractUrls[index],
+        })),
+        handoffId: uuidv4(),
         createdBy: user,
         createdByEmail: email,
         createdAt: new Date().toISOString(),
@@ -340,12 +334,10 @@ function HandoffForm() {
                 email: formValues.billingContact.email,
                 phone: formValues.billingContact.phone,
               },
-          documents: [
-            {
-              name: contract.name,
-              url: contractUrl[0],
-            },
-          ],
+          documents: contracts.map((contract, index) => ({
+            name: contract.name,
+            url: contractUrls[index],
+          })),
           serviceLines: [formValues.serviceLine],
           software:
             formValues.software === "New Portal"
@@ -375,16 +367,15 @@ function HandoffForm() {
       // Reset form
       setFormValues(initialFormValues);
       setSitesToUpload([]);
-      setContract(null);
+      setContracts([null]);
       setExcelFileName("");
-      setContractFileName("");
       setPricingColumns([]);
     } catch (err) {
       setError("Failed to submit handoff. Please try again.");
     } finally {
       setLoading(false);
     }
-  }, [contract, formValues, sitesToUpload, user, email, pricingColumns]);
+  }, [contracts, formValues, sitesToUpload, user, email, pricingColumns]);
 
   // Memoize context value to prevent unnecessary re-renders
   const contextValue = useMemo(
@@ -393,12 +384,10 @@ function HandoffForm() {
       setFormValues,
       sitesToUpload,
       setSitesToUpload,
-      contract,
-      setContract,
+      contracts,
+      setContracts,
       excelFileName,
       setExcelFileName,
-      contractFileName,
-      setContractFileName,
       error,
       setError,
       pricingColumns,
@@ -409,9 +398,8 @@ function HandoffForm() {
     [
       formValues,
       sitesToUpload,
-      contract,
+      contracts,
       excelFileName,
-      contractFileName,
       error,
       pricingColumns,
       availableServices,
@@ -539,7 +527,7 @@ function HandoffForm() {
                 }}
               >
                 <ValidationSummary
-                  contract={contract}
+                  contract={contracts.length}
                   sitesToUpload={sitesToUpload}
                   formValues={formValues}
                   isFormValid={isFormValid}

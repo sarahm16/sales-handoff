@@ -20,16 +20,8 @@ export const serviceLines = [
     name: "Snow",
   },
   {
-    id: 5,
-    name: "Asphalt",
-  },
-  {
     id: 46,
     name: "On Demand",
-  },
-  {
-    id: 6,
-    name: "HVAC",
   },
 ];
 

@@ -24,7 +24,9 @@ import {
   CloudUpload,
   CheckCircleOutline,
   CheckCircle,
+  Delete,
 } from "@mui/icons-material";
+import { IconButton } from "@mui/material";
 
 // Constants
 const OPTIONAL_COLUMNS = ["Site Map"];
@@ -36,19 +38,18 @@ function FileUpload() {
   const {
     sitesToUpload,
     setSitesToUpload,
-    setContract,
+    contracts,
+    setContracts,
     excelFileName,
     setExcelFileName,
-    contractFileName,
-    setContractFileName,
     setError,
     setPricingColumns,
   } = handoffContext;
 
   const handleContractUpload = async (event) => {
-    const file = event.target.files[0];
-    setContract(file);
-    setContractFileName(file?.name || "");
+    console.log("event target files", event.target.files);
+    const files = Array.from(event.target.files);
+    setContracts([...contracts, ...files]);
   };
 
   const handleDownloadTemplate = () => {
@@ -142,6 +143,10 @@ function FileUpload() {
     };
 
     reader.readAsArrayBuffer(file);
+  };
+
+  const handleRemoveContract = (indexToRemove) => () => {
+    setContracts(contracts.filter((_, index) => index !== indexToRemove));
   };
 
   return (
@@ -301,6 +306,7 @@ function FileUpload() {
             id="contract-upload"
             type="file"
             onChange={handleContractUpload}
+            multiple
           />
           <label htmlFor="contract-upload">
             <Button
@@ -308,7 +314,6 @@ function FileUpload() {
               component="span"
               fullWidth
               startIcon={<CloudUpload />}
-              endIcon={contractFileName && <CheckCircle color="success" />}
               sx={{
                 height: 56,
                 borderWidth: 2,
@@ -322,9 +327,24 @@ function FileUpload() {
                 },
               }}
             >
-              {contractFileName || "Upload Signed Contract *"}
+              Upload Signed Contract(s) *
             </Button>
           </label>
+
+          {contracts.length > 0 &&
+            contracts.map((contract, index) => (
+              <Box
+                sx={{ display: "flex", alignItems: "center", mt: 1 }}
+                key={index}
+              >
+                <Typography variant="body2" sx={{ mt: 0.5 }}>
+                  {contract.name}
+                </Typography>{" "}
+                <IconButton onClick={handleRemoveContract(index)}>
+                  <Delete color="error" size="small" />
+                </IconButton>
+              </Box>
+            ))}
         </Grid>
       </Grid>
     </Paper>
